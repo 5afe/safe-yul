@@ -1,0 +1,5 @@
+[profile.default]
+test = 'test'
+libs = ['lib']
+out = 'build/out'
+cache_path = 'build/cache'
