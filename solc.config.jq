@@ -18,6 +18,7 @@
           "abi",
           "evm.bytecode.object",
           "evm.deployedBytecode.object",
+          "evm.deployedBytecode.opcodes",
           "evm.deployedBytecode.immutableReferences"
         ]
       }
