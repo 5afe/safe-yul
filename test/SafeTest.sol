@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import {Test, console2} from "forge-std/Test.sol";
 import {SafeProxyFactory} from "safe-smart-account/contracts/proxies/SafeProxyFactory.sol";
-import {ISafe} from "src/ISafe.sol";
+import {ISafe} from "src/interfaces/ISafe.sol";
 
 import {BYTECODE} from "./SafeBytecode.sol";
 

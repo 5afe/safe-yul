@@ -1,4 +1,4 @@
 [profile.default]
-out = 'build/foundry/out'
-cache_path = 'build/foundry/cache'
+out = 'build/sol/out'
+cache_path = 'build/sol/cache'
 evm_version = 'cancun'

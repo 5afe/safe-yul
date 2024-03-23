@@ -1,27 +1,23 @@
 {
-  language: (if $FILENAME | endswith(".yul")
-    then "Yul"
-    else "Solidity"
-  end),
+  language: "Yul",
   sources: {
     ($FILENAME): {
-      content: $FILE
-    }
+      content: $FILE,
+    },
   },
   settings: {
     optimizer: {
-      enabled: false
+      enabled: false,
     },
     outputSelection: {
       ("*"): {
         ("*"): [
-          "abi",
           "evm.bytecode.object",
           "evm.deployedBytecode.object",
           "evm.deployedBytecode.opcodes",
           "evm.deployedBytecode.immutableReferences"
-        ]
-      }
-    }
-  }
+        ],
+      },
+    },
+  },
 }
