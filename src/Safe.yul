@@ -12,7 +12,7 @@ object "Safe" {
       default { _abort() }
 
       function VERSION() {
-        if iszero(iszero(callvalue())) { _abort() }
+        if callvalue() { _abort() }
 
         mstore(0x00, 0x20)
         mstore(0x3f, "\x0eSafe.yul 0.0.1")
