@@ -17,6 +17,13 @@ test: test/SafeBytecode.sol
 fmt:
 	@$(DOCKER) run --rm -it -v $(PWD):/src:z -w /src $(FOUNDRY) 'forge fmt src/*.sol test/*.sol'
 
+.PHONY: opcodes
+opcodes: build/Safe.yul.output.json
+	@$(JQ) -r '.contracts["src/Safe.yul"]["Safe"].evm.deployedBytecode.opcodes' $< \
+		| sed -E -e 's/(PUSH[1-9][0-9]?) ([^ ]*)/\1,\2/g' -e 's/ +$$//' -e 's/([^ ]*) /\1\n/g' -e 's/,/ /g' \
+		| awk '/PUSH[1-9][0-9]?/ { b=2+2*substr($$1,5)-length($$2); if (b!=0) { $$2=sprintf("0x%0" b "d%s",0,substr($$2,3)) } } { print }' \
+		| awk '{ printf "%04x: %s\n",x,$$0; x+=1 } /PUSH[1-9][0-9]?/ { x+=substr($$1,5) }'
+
 .PHONY: clean
 clean:
 	@rm -rf artifacts/ build/
