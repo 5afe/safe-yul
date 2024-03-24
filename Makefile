@@ -4,7 +4,7 @@ JQ ?= jq
 SOLC := docker.io/ethereum/solc:0.8.25
 FOUNDRY := ghcr.io/foundry-rs/foundry
 
-FORGEFLAGS ?= '-vvv'
+FORGEFLAGS ?= '-v'
 
 .PHONY: all
 all: artifacts/Safe.json

@@ -13,7 +13,7 @@ contract SafeTest is Test {
 
     function setUp() public {
         bytes memory bytecode = BYTECODE;
-        address safe;
+        address payable safe;
         assembly {
             safe := create2(0, add(bytecode, 0x20), mload(bytecode), 0x5afe)
         }
@@ -29,6 +29,6 @@ contract SafeTest is Test {
     }
 
     function deployProxy(uint256 salt) internal returns (ISafe proxy) {
-        return ISafe(address(_factory.createProxyWithNonce(address(_safe), "", salt)));
+        return ISafe(payable(_factory.createProxyWithNonce(address(_safe), "", salt)));
     }
 }
