@@ -1,4 +1,5 @@
 [profile.default]
 out = 'build/sol/out'
 cache_path = 'build/sol/cache'
+solc = '0.8.25'
 evm_version = 'cancun'
