@@ -23,7 +23,7 @@ contract FallbackTest is SafeTest {
         assertEq(returnData, "");
     }
 
-    function test_RevertOnFallbackWithValue() public {
+    function test_FallbackNonPayable() public {
         ISafe safe = deployProxy();
         vm.expectRevert();
         callContract(payable(safe), 1, "data");
@@ -94,7 +94,7 @@ contract FallbackTest is SafeTest {
         vm.expectCall(handler, abi.encodePacked(callData, sender));
         bytes memory returnedData = callContract(address(safe), callData);
 
-        assertEq(returnData, returnedData);
+        assertEq(returnedData, returnData);
     }
 
     function test_FallbackRevert() public {
@@ -115,5 +115,16 @@ contract FallbackTest is SafeTest {
         vm.expectCall(handler, abi.encodePacked(callData, sender));
         vm.expectRevert(revertMessage);
         callContract(address(safe), callData);
+    }
+
+    function test_ZeroFallback() public {
+        ISafe safe = deployProxy();
+
+        vm.prank(address(safe));
+        safe.setFallbackHandler(address(0));
+
+        bytes memory returnData = callContract(address(safe), abi.encodeWithSignature("someCall(uint256)", (42)));
+
+        assertEq(returnData, "");
     }
 }

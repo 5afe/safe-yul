@@ -8,6 +8,8 @@ interface ISafe {
 
     function setFallbackHandler(address handler) external;
 
+    function simulateAndRevert(address target, bytes memory callData) external;
+
     receive() external payable;
     fallback(bytes calldata input) external returns (bytes memory output);
 }

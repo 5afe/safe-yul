@@ -18,6 +18,7 @@ object "Safe" {
       switch shr(224, calldataload(0x00))
       case 0xffa1ad74 { VERSION() }
       case 0xf08a0323 { setFallbackHandler() }
+      case 0xb4faba09 { simulateAndRevert() }
       default {
         if iszero(calldatasize()) {
           receive()
@@ -39,8 +40,7 @@ object "Safe" {
         let handler := shr(96, calldataload(0x10))
         _internalSetFallbackHandler(handler)
         log2(
-          0x00,
-          0x00,
+          0x00, 0x00,
           // event ChangedFallbackHandler(address indexed handler)
           0x5ac6c46c93c8d0e53714ba3b53db3e7c046da994313d7ed0d192028bc7c228b0,
           handler
@@ -48,11 +48,30 @@ object "Safe" {
         stop()
       }
 
+      function simulateAndRevert() {
+        if callvalue() { _abort() }
+
+        let callData := add(0x04, calldataload(0x24))
+        let callDataLength := calldataload(callData)
+        calldatacopy(0x00, add(callData, 0x20), callDataLength)
+        mstore(
+          0x00,
+          delegatecall(
+            gas(),
+            calldataload(0x04),
+            0x00, callDataLength,
+            0x00, 0x00
+          )
+        )
+        mstore(0x20, returndatasize())
+        returndatacopy(0x40, 0x00, returndatasize())
+        revert(0x00, add(returndatasize(), 0x40))
+      }
+
       function receive() {
         mstore(0x00, callvalue())
         log2(
-          0x00,
-          0x20,
+          0x00, 0x20,
           // event SafeReceived(address indexed sender, uint256 value)
           0x3d0ce9bfc3ed7d6862dbb28b2dea94561fe714a1b4d019aa8af39730d1ad7c3d,
           caller()
