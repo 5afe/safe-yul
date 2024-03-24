@@ -1,7 +1,10 @@
 // TODO(nlordell):
 // - Comment code
 // - Don't use string literals where possible, they make the code bigger
-// - Fallback handler implementation and tests
+
+// Preprocessor wishlist:
+// - #define nonpayable() if callvalue() { _abort() }
+// - #define EVENT_NAME 0x...
 
 object "Safe" {
   code {
@@ -16,9 +19,10 @@ object "Safe" {
       case 0xffa1ad74 { VERSION() }
       case 0xf08a0323 { setFallbackHandler() }
       default {
-        switch calldatasize()
-        case 0 { receive() }
-        default { fallback() }
+        if iszero(calldatasize()) {
+          receive()
+        }
+        fallback()
       }
 
       function VERSION() {
@@ -41,6 +45,7 @@ object "Safe" {
           0x5ac6c46c93c8d0e53714ba3b53db3e7c046da994313d7ed0d192028bc7c228b0,
           handler
         )
+        stop()
       }
 
       function receive() {
@@ -52,17 +57,35 @@ object "Safe" {
           0x3d0ce9bfc3ed7d6862dbb28b2dea94561fe714a1b4d019aa8af39730d1ad7c3d,
           caller()
         )
+        stop()
       }
 
       function fallback() {
         if callvalue() { _abort() }
+
+        calldatacopy(0x00, 0x00, calldatasize())
+        mstore(calldatasize(), shl(96, caller()))
+        let success := call(
+          gas(),
+          // FALLBACK_HANDLER_STORAGE_SLOT
+          sload(0x6c9a6c4a39284e37ed1cf53d337577d14212a4870fb976a4366c693b939918d5),
+          0,
+          0x00, add(calldatasize(), 0x14),
+          0x00, 0x00
+        )
+        returndatacopy(0x00, 0x00, returndatasize())
+
+        if success {
+          return(0x00, returndatasize())
+        }
+        revert(0x00, returndatasize())
       }
 
       function _abort() {
         revert(0x00, 0x00)
       }
 
-      function _revert(code) {
+      function _error(code) {
         mstore(0x00, hex"08c379a0")
         mstore(0x04, 0x20)
         mstore(0x24, 0x05)
@@ -71,11 +94,11 @@ object "Safe" {
       }
 
       function _authorized() {
-        if iszero(eq(caller(), address())) { _revert("GS031") }
+        if iszero(eq(caller(), address())) { _error("GS031") }
       }
 
       function _internalSetFallbackHandler(handler) {
-        if eq(handler, address()) { _revert("GS400") }
+        if eq(handler, address()) { _error("GS400") }
         sstore(
           // FALLBACK_HANDLER_STORAGE_SLOT
           0x6c9a6c4a39284e37ed1cf53d337577d14212a4870fb976a4366c693b939918d5,

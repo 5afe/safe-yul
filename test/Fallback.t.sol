@@ -18,16 +18,15 @@ contract FallbackTest is SafeTest {
 
         vm.deal(sender, value);
         vm.prank(sender);
-        (bool success, bytes memory returnData) = payable(safe).call{value: value}("");
+        bytes memory returnData = callContract(payable(safe), value, "");
 
-        assertTrue(success);
-        assertEq(returnData.length, 0);
+        assertEq(returnData, "");
     }
 
     function test_RevertOnFallbackWithValue() public {
         ISafe safe = deployProxy();
-        (bool success,) = payable(safe).call{value: 1}("data");
-        assertFalse(success);
+        vm.expectRevert();
+        callContract(payable(safe), 1, "data");
     }
 
     function test_SetFallbackHandler() public {
@@ -56,9 +55,8 @@ contract FallbackTest is SafeTest {
         emit ChangedFallbackHandler(maskedHandler);
 
         vm.prank(address(safe));
-        (bool success,) = address(safe).call(abi.encodeWithSelector(safe.setFallbackHandler.selector, (dirtyHandler)));
+        callContract(address(safe), abi.encodeWithSelector(safe.setFallbackHandler.selector, (dirtyHandler)));
 
-        assertTrue(success);
         assertEq(
             vm.load(address(safe), keccak256("fallback_manager.handler.address")),
             bytes32(uint256(uint160(maskedHandler)))
@@ -78,5 +76,44 @@ contract FallbackTest is SafeTest {
         vm.expectRevert("GS400");
         vm.prank(address(safe));
         safe.setFallbackHandler(address(safe));
+    }
+
+    function test_Fallback() public {
+        ISafe safe = deployProxy();
+
+        address sender = 0x0101010101010101010101010101010101010101;
+        address handler = address(0xfa11bacc);
+        bytes memory callData = abi.encodeWithSignature("someCall(uint256)", (42));
+        bytes memory returnData = "some return data";
+
+        vm.prank(address(safe));
+        safe.setFallbackHandler(handler);
+
+        vm.prank(address(sender));
+        vm.mockCall(handler, 0, abi.encodePacked(callData, sender), returnData);
+        vm.expectCall(handler, abi.encodePacked(callData, sender));
+        bytes memory returnedData = callContract(address(safe), callData);
+
+        assertEq(returnData, returnedData);
+    }
+
+    function test_FallbackRevert() public {
+        ISafe safe = deployProxy();
+
+        address sender = 0x0101010101010101010101010101010101010101;
+        address handler = address(0xfa11bacc);
+        bytes memory callData = abi.encodeWithSignature("someCall(uint256)", (42));
+        bytes memory revertMessage = "some revert message";
+
+        vm.prank(address(safe));
+        safe.setFallbackHandler(handler);
+
+        vm.prank(address(sender));
+        vm.mockCallRevert(
+            handler, 0, abi.encodePacked(callData, sender), abi.encodeWithSignature("Error(string)", revertMessage)
+        );
+        vm.expectCall(handler, abi.encodePacked(callData, sender));
+        vm.expectRevert(revertMessage);
+        callContract(address(safe), callData);
     }
 }
