@@ -4,19 +4,24 @@ JQ ?= jq
 SOLC := docker.io/ethereum/solc:0.8.25
 FOUNDRY := ghcr.io/foundry-rs/foundry
 
-FORGEFLAGS ?= '-v'
+FORGEBUILDFLAGS ?=
+FORGEFMTFLAGS ?=
+FORGETESTFLAGS ?= '-v'
 
 .PHONY: all
-all: artifacts/Safe.json
+all: build
+
+.PHONY: build
+build: artifacts/Safe.json
 
 .PHONY: test
 test: test/SafeBytecode.sol
-	@$(DOCKER) run --rm -it -v $(PWD):/src:z -w /src $(FOUNDRY) 'forge test $(FORGEFLAGS)'
+	@$(DOCKER) run --rm -it -v $(PWD):/src:z -w /src $(FOUNDRY) 'forge test $(FORGETESTFLAGS)'
 
 .PHONY: fmt
 fmt:
 	@$(DOCKER) run --rm -it -v $(PWD):/src:z -w /src $(FOUNDRY) \
-		'forge fmt $(shell find src -name '*.sol') $(shell find test -name '*.sol')'
+		'forge fmt $(FORGEFMTFLAGS) $(shell find src -name '*.sol') $(shell find test -name '*.sol')'
 
 .PHONY: opcodes/%
 opcodes/%: build/yul/%.json
@@ -45,7 +50,7 @@ artifacts/%.json: build/sol/forge.fingerprint
 		>$@
 
 build/sol/forge.fingerprint: foundry.toml $(shell find src -name '*.sol') test/SafeBytecode.sol
-	@$(DOCKER) run --rm -it -v $(PWD):/src:z -w /src $(FOUNDRY) 'forge build'
+	@$(DOCKER) run --rm -it -v $(PWD):/src:z -w /src $(FOUNDRY) 'forge build $(FORGEBUILDFLAGS)'
 	@touch $@
 
 .PRECIOUS: test/%Bytecode.sol

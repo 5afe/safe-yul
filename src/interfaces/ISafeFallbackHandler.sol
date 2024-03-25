@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 interface ISafeFallbackHandler {
+    function isModuleEnabled(address module) external view returns (bool enabled);
     function getModulesPaginated(address start, uint256 pageSize)
         external
         view
