@@ -33,11 +33,4 @@ contract SimulateTest is SafeTest {
             assertEq(result, abi.encodePacked(uint256(0), revertMessage.length, revertMessage));
         }
     }
-
-    function test_SimulateAndRevertNonPayable() public {
-        ISafe safe = deployProxy();
-
-        vm.expectRevert(bytes(""));
-        callContract(payable(safe), 1, abi.encodeCall(safe.simulateAndRevert, (address(0), "")));
-    }
 }

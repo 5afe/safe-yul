@@ -2,17 +2,17 @@
 
 ## Progress
 
-- [ ] Safe,
-- [x] Singleton,
-- [x] NativeCurrencyPaymentFallback,
-- [x] ModuleManager,
-- [ ] OwnerManager,
-- [ ] SignatureDecoder,
-- [ ] SecuredTokenTransfer,
-- [x] ISignatureValidatorConstants,
-- [x] FallbackManager,
-- [x] StorageAccessible,
-- [ ] GuardManager
+- [ ] Safe
+- [x] Singleton
+- [x] NativeCurrencyPaymentFallback
+- [x] ModuleManager
+- [ ] OwnerManager
+- [ ] SignatureDecoder
+- [ ] SecuredTokenTransfer
+- [x] ISignatureValidatorConstants
+- [x] FallbackManager
+- [x] StorageAccessible
+- [x] GuardManager
 
 ## Functional Differences
 
@@ -29,3 +29,4 @@ functional differences with the reference implementation:
   almost never configured this way in practice, and when they are, shouldn't be
   called this way anyway.
 - `getModules` reverts if there are more than the default page size of modules.
+- `simulateAndRevert` is payable. It reverts so funds can't be lost.

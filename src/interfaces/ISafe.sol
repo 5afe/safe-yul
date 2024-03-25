@@ -43,5 +43,7 @@ interface ISafe {
 
     function setFallbackHandler(address handler) external;
 
-    function simulateAndRevert(address target, bytes memory data) external;
+    function setGuard(address guard) external;
+
+    function simulateAndRevert(address target, bytes memory data) external payable;
 }

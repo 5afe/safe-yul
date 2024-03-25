@@ -25,6 +25,7 @@ object "Safe" {
       case 0x468721a7 { execTransactionFromModule() }
       case 0x5229073f { execTransactionFromModuleReturnData() }
       case 0xf08a0323 { setFallbackHandler() }
+      case 0xe19a9dd9 { setGuard() }
       case 0xb4faba09 { simulateAndRevert() }
       default {
         if iszero(calldatasize()) {
@@ -120,9 +121,38 @@ object "Safe" {
         stop()
       }
 
-      function simulateAndRevert() {
-        if callvalue() { _abort() }
+      function setGuard() {
+        _authorized()
 
+        let guard := shr(96, calldataload(0x10))
+        if guard {
+          // guard.supportsInterface(type(Guard).interfaceId)
+          mstore(0x00, hex"01ffc9a7e6d7a83a")
+          if or(
+            or(
+              xor(returndatasize(), 0x20),
+              xor(mload(0x00), 1)
+            ),
+            iszero(staticcall(gas(), guard, 0x00, 0x24, 0x00, 0x20))
+          ) {
+            _error("GS300")
+          }
+        }
+        // GUARD_STORAGE_SLOT
+        sstore(
+          0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8,
+          guard
+        )
+        // event ChangedGuard(address indexed guard)
+        log2(
+          0x00, 0x00,
+          0x1151116914515bc0891ff9047a6cb32cf902546f83066499bcf8ba33d2353fa2,
+          guard
+        )
+        stop()
+      }
+
+      function simulateAndRevert() {
         let data := add(calldataload(0x24), 0x04)
         let dataLength := calldataload(data)
         calldatacopy(0x00, add(data, 0x20), dataLength)
@@ -185,10 +215,13 @@ object "Safe" {
       }
 
       function _authorized() {
+        if callvalue() { _abort() }
         if iszero(eq(caller(), address())) { _error("GS031") }
       }
 
       function _execTransactionFromModule() -> success {
+        if callvalue() { _abort() }
+
         mstore(0x00, caller())
         mstore(0x20, 1)
         let slot := keccak256(0x00, 0x40)
@@ -206,8 +239,14 @@ object "Safe" {
         log2(
           0x00, 0x00,
           or(
-            mul(success, 0x6895c13664aa4f67288b25d7a21d7aaa34916e355fb9b6fae0a139a9085becb8),
-            mul(iszero(success), 0xacd2c8702804128fdb0db2bb49f6d127dd0181c13fd45dbfe16de0930e2bd375)
+            mul(
+              success,
+              0x6895c13664aa4f67288b25d7a21d7aaa34916e355fb9b6fae0a139a9085becb8
+            ),
+            mul(
+              iszero(success),
+              0xacd2c8702804128fdb0db2bb49f6d127dd0181c13fd45dbfe16de0930e2bd375
+            )
           ),
           caller()
         )
@@ -225,8 +264,8 @@ object "Safe" {
 
       function _internalSetFallbackHandler(handler) {
         if eq(handler, address()) { _error("GS400") }
+        // FALLBACK_HANDLER_STORAGE_SLOT
         sstore(
-          // FALLBACK_HANDLER_STORAGE_SLOT
           0x6c9a6c4a39284e37ed1cf53d337577d14212a4870fb976a4366c693b939918d5,
           handler
         )
