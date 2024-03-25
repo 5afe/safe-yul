@@ -2,6 +2,12 @@
 pragma solidity ^0.8.0;
 
 interface ISafeFallbackHandler {
+    function getModulesPaginated(address start, uint256 pageSize)
+        external
+        view
+        returns (address[] memory modules, address next);
+    function getModules() external view returns (address[] memory modules);
+
     function getStorageAt(uint256 offset, uint256 length) external view returns (bytes memory);
-    function simulate(address target, bytes calldata callData) external returns (bytes memory result);
+    function simulate(address target, bytes calldata data) external returns (bytes memory result);
 }

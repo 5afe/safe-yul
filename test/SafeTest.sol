@@ -5,14 +5,16 @@ import {Test, console2} from "forge-std/Test.sol";
 import {SafeProxyFactory} from "safe-smart-account/contracts/proxies/SafeProxyFactory.sol";
 import {SafeFallbackHandler} from "src/SafeFallbackHandler.sol";
 import {ISafe} from "src/interfaces/ISafe.sol";
+import {ISafeWithFallbackHandler} from "src/interfaces/ISafeWithFallbackHandler.sol";
 
 import {BYTECODE} from "./SafeBytecode.sol";
 
 contract SafeTest is Test {
     ISafe internal _singleton;
+    SafeFallbackHandler internal _handler;
     SafeProxyFactory internal _factory;
 
-    function setUp() public virtual {
+    function setUp() public {
         bytes memory bytecode = BYTECODE;
         address payable safe;
         assembly ("memory-safe") {
@@ -22,6 +24,7 @@ contract SafeTest is Test {
         console2.log("safe", safe);
 
         _singleton = ISafe(safe);
+        _handler = new SafeFallbackHandler();
         _factory = new SafeProxyFactory();
     }
 
@@ -30,7 +33,30 @@ contract SafeTest is Test {
     }
 
     function deployProxy(uint256 salt) internal returns (ISafe proxy) {
-        return ISafe(payable(_factory.createProxyWithNonce(address(_singleton), "", salt)));
+        return ISafe(
+            payable(
+                _factory.createProxyWithNonce(
+                    address(_singleton),
+                    abi.encodeCall(
+                        _singleton.setup, (new address[](0), 0, address(0), "", address(0), address(0), 0, address(0))
+                    ),
+                    salt
+                )
+            )
+        );
+    }
+
+    function deployProxyWithFallback() internal returns (ISafeWithFallbackHandler proxy) {
+        return deployProxyWithFallback(0x5afe);
+    }
+
+    function deployProxyWithFallback(uint256 salt) internal returns (ISafeWithFallbackHandler proxy) {
+        ISafe safe = deployProxy(salt);
+
+        vm.prank(address(safe));
+        safe.setFallbackHandler(address(_handler));
+
+        return ISafeWithFallbackHandler(payable(safe));
     }
 
     function callContract(address target, bytes memory callData) internal returns (bytes memory returnData) {

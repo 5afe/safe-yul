@@ -5,13 +5,13 @@
 - [ ] Safe,
 - [x] Singleton,
 - [x] NativeCurrencyPaymentFallback,
-- [ ] ModuleManager,
+- [x] ModuleManager,
 - [ ] OwnerManager,
 - [ ] SignatureDecoder,
 - [ ] SecuredTokenTransfer,
 - [x] ISignatureValidatorConstants,
 - [x] FallbackManager,
-- [ ] StorageAccessible,
+- [x] StorageAccessible,
 - [ ] GuardManager
 
 ## Functional Differences
@@ -28,3 +28,4 @@ functional differences with the reference implementation:
   gas for checking the handler address is non-zero is not worth it as Safes are
   almost never configured this way in practice, and when they are, shouldn't be
   called this way anyway.
+- `getModules` reverts if there are more than the default page size of modules.
