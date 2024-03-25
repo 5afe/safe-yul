@@ -8,6 +8,9 @@ FORGEBUILDFLAGS ?=
 FORGEFMTFLAGS ?=
 FORGETESTFLAGS ?= '-v'
 
+DOCKERSOLC := @$(DOCKER) run --rm -i $(SOLC)
+DOCKERFOUNDRY := $(DOCKER) run --rm -v $(PWD):/src -w /src $(FOUNDRY)
+
 .PHONY: all
 all: build
 
@@ -16,12 +19,12 @@ build: artifacts/Safe.json
 
 .PHONY: test
 test: test/SafeBytecode.sol
-	@$(DOCKER) run --rm -it -v $(PWD):/src:z -w /src $(FOUNDRY) 'forge test $(FORGETESTFLAGS)'
+	@mkdir -p build/sol
+	@$(DOCKERFOUNDRY) 'forge test $(FORGETESTFLAGS)'
 
 .PHONY: fmt
 fmt:
-	@$(DOCKER) run --rm -it -v $(PWD):/src:z -w /src $(FOUNDRY) \
-		'forge fmt $(FORGEFMTFLAGS) $(shell find src -name '*.sol') $(shell find test -name '*.sol')'
+	@$(DOCKERFOUNDRY) 'forge fmt $(FORGEFMTFLAGS) $(shell find src -name '*.sol') $(shell find test -name '*.sol')'
 
 .PHONY: opcodes/%
 opcodes/%: build/yul/%.json
@@ -50,7 +53,8 @@ artifacts/%.json: build/sol/forge.fingerprint
 		>$@
 
 build/sol/forge.fingerprint: foundry.toml $(shell find src -name '*.sol') test/SafeBytecode.sol
-	@$(DOCKER) run --rm -it -v $(PWD):/src:z -w /src $(FOUNDRY) 'forge build $(FORGEBUILDFLAGS)'
+	@mkdir -p build/sol
+	@$(DOCKERFOUNDRY) 'forge build $(FORGEBUILDFLAGS)'
 	@touch $@
 
 .PRECIOUS: test/%Bytecode.sol
@@ -69,7 +73,7 @@ build/yul/%.json: build/yul/%.output.json
 
 .PRECIOUS: build/yul/%.output.json
 build/yul/%.output.json: build/yul/%.input.json
-	@$(DOCKER) run --rm -i $(SOLC) --standard-json <$< >$@
+	@$(DOCKERSOLC) --standard-json <$< >$@
 	@$(JQ) '(.errors // []) as $$e | $$e | map(.formattedMessage) | join("") | halt_error($$e | map(select(.severity == "error")) | length)' $@ \
 		|| (rm $@; exit 1)
 
