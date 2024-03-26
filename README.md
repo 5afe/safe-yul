@@ -3,11 +3,15 @@
 ## Progress
 
 - [~] Safe
+  - [x] setup
+  - [ ] execTransaction
+  - [~] check(N)Signatures
+  - [x] approveHash
 - [x] Singleton
 - [x] NativeCurrencyPaymentFallback
 - [x] ModuleManager
 - [x] OwnerManager
-- [ ] SignatureDecoder
+- [x] SignatureDecoder
 - [x] SecuredTokenTransfer
 - [x] ISignatureValidatorConstants
 - [x] FallbackManager

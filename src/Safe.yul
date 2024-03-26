@@ -451,6 +451,98 @@ object "Safe" {
       function _checkNSignatures(n) {
         if callvalue() { revert(0x00, 0x00) }
 
+        let signatures := add(calldataload(0x44), 0x24)
+        let signaturesLength := calldataload(sub(signatures, 0x20))
+        if lt(div(signaturesLength, 0x41), n) { _error("GS020") }
+        let fixedLength := mul(n, 0x41)
+
+        let dataHash := calldataload(0x04)
+        let dataPrefixLength := 0
+        for {
+          let ptr := signatures
+          let end := add(ptr, fixedLength)
+          let lastOwner := 1
+          let currentOwner
+        } lt(ptr, end) {
+          ptr := add(ptr, 0x41)
+          if iszero(gt(currentOwner, lastOwner)) { _error("GS026") }
+          lastOwner := currentOwner
+        } {
+          let v := byte(0, calldataload(add(ptr, 0x40)))
+          if iszero(v) {
+            let magic := 0x20c13b0b
+            if iszero(dataPrefixLength) {
+              mstore(0x84, magic)
+              mstore(0xa4, 0x40)
+              let data := add(calldataload(0x24), 0x04)
+              let dataLength := calldataload(data)
+              calldatacopy(0xe4, data, add(dataLength, 0x20))
+              if xor(dataHash, keccak256(0x104, dataLength)) { _error("GS027") }
+              dataPrefixLength := add(and(add(dataLength, 0x3f), not(0x1f)), 0x44)
+            }
+            currentOwner := and(
+              calldataload(ptr),
+              0xffffffffffffffffffffffffffffffffffffffff
+            )
+            let s := calldataload(add(ptr, 0x20))
+            if lt(s, fixedLength) { _error("GS021") }
+            // `signaturesLength - 0x20` can't overflow as in order to reach
+            // this point: `signaturesLength >= fixedLength >= 0x41`
+            if gt(s, sub(signaturesLength, 0x20)) { _error("GS022") }
+            let offset := add(signatures, s)
+            let length := calldataload(offset)
+            // `signaturesLength - s - 0x20` can't overflow as we already
+            // checked: `s <= signaturesLength - 0x20`.
+            if gt(length, sub(signaturesLength, add(s, 0x20))) { _error("GS023") }
+            calldatacopy(add(0xa0, dataPrefixLength), offset, add(length, 0x20))
+            if iszero(
+              staticcall(
+                gas(),
+                currentOwner,
+                0xa0, add(dataPrefixLength, and(add(length, 0x3f), not(0x1f))),
+                0x00, 0x20
+              )
+            ) {
+              returndatacopy(0x00, 0x00, returndatasize())
+              revert(0x00, returndatasize())
+            }
+            if or(
+              xor(returndatasize(), 0x20),
+              xor(mload(0x00), magic)
+            ) {
+              _error("GS024")
+            }
+            continue
+          }
+          if eq(v, 1) {
+            currentOwner := and(
+              calldataload(ptr),
+              0xffffffffffffffffffffffffffffffffffffffff
+            )
+            if xor(currentOwner, caller()) {
+              mstore(0x00, currentOwner)
+              mstore(0x20, 8)
+              mstore(0x20, keccak256(0x00, 0x40))
+              mstore(0x00, dataHash)
+              if iszero(sload(keccak256(0x00, 0x40))) { _error("GS025") }
+            }
+            continue
+          }
+          {
+            mstore(0x20, dataHash)
+            if gt(v, 30) {
+              mstore(0x00, "\x00\x00\x00\x00\x19Ethereum Signed Message:\n32")
+              mstore(0x20, keccak256(0x04, 0x3d))
+              v := sub(v, 4)
+            }
+            mstore(0x40, v)
+            mstore(0x60, calldataload(ptr))
+            mstore(0x80, calldataload(add(ptr, 0x20)))
+            mstore(0x00, 0x00)
+            pop(staticcall(gas(), 1, 0x20, 0x80, 0x00, 0x20))
+            currentOwner := mload(0x00)
+          }
+        }
       }
 
       function _execTransactionFromModule() -> success {
