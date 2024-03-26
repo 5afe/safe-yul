@@ -124,7 +124,7 @@ contract ModuleTest is SafeTest {
         address module = address(0xd001);
         address target = address(0x7a59e7);
         uint256 value = 42 ether;
-        bytes memory callData = abi.encodeWithSignature("someCall(uint256)", (42));
+        bytes memory callData = abi.encodeWithSignature("someCall(uint256)", 42);
         bytes memory returnData = abi.encode(0x1337);
 
         vm.deal(address(safe), value);
@@ -157,8 +157,8 @@ contract ModuleTest is SafeTest {
 
         address module = address(0xd001);
         address target = address(0x7a59e7);
-        bytes memory callData = abi.encodeWithSignature("someCall(uint256)", (42));
-        bytes memory revertData = abi.encodeWithSignature("Error(string)", ("some revert message"));
+        bytes memory callData = abi.encodeWithSignature("someCall(uint256)", 42);
+        bytes memory revertData = abi.encodeWithSignature("Error(string)", "some revert message");
 
         vm.prank(address(safe));
         safe.enableModule(module);
@@ -196,7 +196,7 @@ contract ModuleTest is SafeTest {
 
         vm.prank(module);
         (bool success, bytes memory returnData) = safe.execTransactionFromModuleReturnData(
-            address(accessor), value, abi.encodeCall(accessor.isModuleEnabled, (module)), ISafe.Operation.DELEGATECALL
+            address(accessor), value, abi.encodeCall(accessor.isModuleEnabled, module), ISafe.Operation.DELEGATECALL
         );
 
         assertTrue(success);

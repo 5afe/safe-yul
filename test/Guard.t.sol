@@ -11,9 +11,7 @@ contract GuardTest is SafeTest {
         ISafe safe = deployProxy();
 
         address guard = address(0x9a5d);
-        vm.mockCall(
-            guard, 0, abi.encodeCall(Guard(guard).supportsInterface, (type(Guard).interfaceId)), abi.encode(true)
-        );
+        vm.mockCall(guard, 0, abi.encodeCall(Guard(guard).supportsInterface, type(Guard).interfaceId), abi.encode(true));
 
         vm.expectEmit(address(safe));
         emit ChangedGuard(guard);

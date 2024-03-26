@@ -61,7 +61,7 @@ object "Safe" {
             ownerPtr := sub(ownerPtr, 0x20)
           } {
             let owner := calldataload(ownerPtr)
-            if lt(owner, 2) { _error("GS203") }
+            if or(lt(owner, 2), eq(owner, address())) { _error("GS203") }
             mstore(0x00, owner)
             mstore(0x20, 2)
             let slot := keccak256(0x00, 0x40)
@@ -106,29 +106,29 @@ object "Safe" {
               if iszero(extcodesize(initializer)) { _error("GS002") }
             }
           }
+        }
 
-          let payment := calldataload(0xc4)
-          if payment {
-            _handlePayment(
-              shr(96, calldataload(0xb0)),
-              payment,
-              shr(96, calldataload(0xf0))
-            )
-          }
-
-          // event SafeSetup(address indexed initiator, address[] owners, uint256 threshold, address initializer, address fallbackHandler)
-          mstore(0x00, 0x80)
-          mstore(0x20, threshold)
-          mstore(0x40, initializer)
-          mstore(0x60, fallbackHandler)
-          calldatacopy(0x80, owners, add(ownersByteLength, 0x20))
-          log2(
-            0x00, add(ownersByteLength, 0xa0),
-            0x141df868a6331af528e38c83b7aa03edc19be66e37ae67f9285bf4f8e3c6a1a8,
-            caller()
+        let payment := calldataload(0xc4)
+        if payment {
+          _handlePayment(
+            shr(96, calldataload(0xb0)),
+            payment,
+            shr(96, calldataload(0xf0))
           )
         }
 
+        // event SafeSetup(address indexed initiator, address[] owners, uint256 threshold, address initializer, address fallbackHandler)
+        mstore(0x00, 0x80)
+        mstore(0x20, threshold)
+        mstore(0x40, initializer)
+        mstore(0x60, fallbackHandler)
+        calldatacopy(0x80, owners, add(ownersByteLength, 0x20))
+        log2(
+          0x00, add(ownersByteLength, 0xa0),
+          0x141df868a6331af528e38c83b7aa03edc19be66e37ae67f9285bf4f8e3c6a1a8,
+          caller()
+        )
+        stop()
       }
 
       function enableModule() {

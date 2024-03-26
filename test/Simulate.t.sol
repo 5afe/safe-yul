@@ -8,7 +8,7 @@ contract SimulateTest is SafeTest {
         ISafe safe = deployProxy();
 
         address target = address(0x7a59e7);
-        bytes memory callData = abi.encodeWithSignature("someCall(uint256)", (42));
+        bytes memory callData = abi.encodeWithSignature("someCall(uint256)", 42);
         bytes memory returnData = "some return data";
 
         vm.mockCall(target, callData, returnData);
@@ -23,7 +23,7 @@ contract SimulateTest is SafeTest {
         ISafe safe = deployProxy();
 
         address target = address(0x7a59e7);
-        bytes memory callData = abi.encodeWithSignature("someCall(uint256)", (42));
+        bytes memory callData = abi.encodeWithSignature("someCall(uint256)", 42);
         bytes memory revertMessage = "some revert message";
 
         vm.mockCallRevert(target, callData, revertMessage);

@@ -56,7 +56,7 @@ contract FallbackTest is SafeTest {
         emit ChangedFallbackHandler(maskedHandler);
 
         vm.prank(address(safe));
-        callContract(address(safe), abi.encodeWithSelector(safe.setFallbackHandler.selector, (dirtyHandler)));
+        callContract(address(safe), abi.encodeWithSelector(safe.setFallbackHandler.selector, dirtyHandler));
 
         assertEq(
             vm.load(address(safe), keccak256("fallback_manager.handler.address")),
@@ -84,7 +84,7 @@ contract FallbackTest is SafeTest {
 
         address sender = 0x0101010101010101010101010101010101010101;
         address fallbackHandler = address(0xfa11bacc);
-        bytes memory callData = abi.encodeWithSignature("someCall(uint256)", (42));
+        bytes memory callData = abi.encodeWithSignature("someCall(uint256)", 42);
         bytes memory returnData = "some return data";
 
         vm.prank(address(safe));
@@ -103,7 +103,7 @@ contract FallbackTest is SafeTest {
 
         address sender = 0x0101010101010101010101010101010101010101;
         address fallbackHandler = address(0xfa11bacc);
-        bytes memory callData = abi.encodeWithSignature("someCall(uint256)", (42));
+        bytes memory callData = abi.encodeWithSignature("someCall(uint256)", 42);
         bytes memory revertMessage = "some revert message";
 
         vm.prank(address(safe));
@@ -127,7 +127,7 @@ contract FallbackTest is SafeTest {
         vm.prank(address(safe));
         safe.setFallbackHandler(address(0));
 
-        bytes memory returnData = callContract(address(safe), abi.encodeWithSignature("someCall(uint256)", (42)));
+        bytes memory returnData = callContract(address(safe), abi.encodeWithSignature("someCall(uint256)", 42));
 
         assertEq(returnData, "");
     }

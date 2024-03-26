@@ -2,13 +2,13 @@
 
 ## Progress
 
-- [ ] Safe
+- [~] Safe
 - [x] Singleton
 - [x] NativeCurrencyPaymentFallback
 - [x] ModuleManager
 - [ ] OwnerManager
 - [ ] SignatureDecoder
-- [ ] SecuredTokenTransfer
+- [x] SecuredTokenTransfer
 - [x] ISignatureValidatorConstants
 - [x] FallbackManager
 - [x] StorageAccessible
@@ -30,3 +30,5 @@ functional differences with the reference implementation:
   called this way anyway.
 - `getModules` reverts if there are more than the default page size of modules.
 - `simulateAndRevert` is payable. It reverts so funds can't be lost.
+- We always revert with `GS204` on duplicate owners during `setup`. This is
+  ensured by reversing the order in which we build the linked list.
