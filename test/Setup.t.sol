@@ -23,7 +23,7 @@ contract SetupTest is SafeTest {
         owners[2] = address(0xacc2);
         uint256 threshold = 2;
 
-        vm.expectEmit();
+        vm.expectEmit(address(safe));
         emit SafeSetup(address(this), owners, threshold, address(0), address(_fallbackHandler));
 
         safe.setup(owners, threshold, address(0), "", address(_fallbackHandler), address(0), 0, address(0));
@@ -131,7 +131,7 @@ contract SetupTest is SafeTest {
         vm.etch(initializer, hex"00c0de");
         vm.expectCall(initializer, 0, initializerData);
 
-        vm.expectEmit();
+        vm.expectEmit(address(safe));
         emit SafeSetup(address(this), owners, 1, initializer, address(0));
 
         safe.setup(owners, 1, initializer, initializerData, address(0), address(0), 0, address(0));
@@ -174,7 +174,7 @@ contract SetupTest is SafeTest {
         address origin = address(0xf1f1f1);
 
         vm.expectCall(origin, payment, "");
-        vm.expectEmit();
+        vm.expectEmit(address(safe));
         emit SafeSetup(initiator, owners, 1, address(0), address(0));
 
         vm.prank(initiator, origin);

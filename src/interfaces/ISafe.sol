@@ -51,6 +51,11 @@ interface ISafe {
         external
         returns (bool success, bytes memory returnData);
 
+    function addOwnerWithThreshold(address owner, uint256 threshold) external;
+    function removeOwner(address prevOwner, address owner, uint256 threshold) external;
+    function swapOwner(address prevOwner, address oldOwner, address newOwner) external;
+    function changeThreshold(uint256 threshold) external;
+
     function setFallbackHandler(address fallbackHandler) external;
 
     function setGuard(address guard) external;

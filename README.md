@@ -6,7 +6,7 @@
 - [x] Singleton
 - [x] NativeCurrencyPaymentFallback
 - [x] ModuleManager
-- [ ] OwnerManager
+- [x] OwnerManager
 - [ ] SignatureDecoder
 - [x] SecuredTokenTransfer
 - [x] ISignatureValidatorConstants
@@ -32,3 +32,4 @@ functional differences with the reference implementation:
 - `simulateAndRevert` is payable. It reverts so funds can't be lost.
 - We always revert with `GS204` on duplicate owners during `setup`. This is
   ensured by reversing the order in which we build the linked list.
+- `setup` function is `payable`.

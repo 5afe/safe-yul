@@ -26,6 +26,10 @@ object "Safe" {
       case 0xe009cfde { disableModule() }
       case 0x468721a7 { execTransactionFromModule() }
       case 0x5229073f { execTransactionFromModuleReturnData() }
+      case 0x0d582f13 { addOwnerWithThreshold() }
+      case 0xf8dc5dd9 { removeOwner() }
+      case 0xe318b52b { swapOwner() }
+      case 0x694e80c3 { changeThreshold() }
       case 0xf08a0323 { setFallbackHandler() }
       case 0xe19a9dd9 { setGuard() }
       case 0xb4faba09 { simulateAndRevert() }
@@ -48,15 +52,15 @@ object "Safe" {
         if sload(4) { _error("GS200") }
 
         let owners := add(calldataload(0x04), 0x04)
-        let ownersLength := calldataload(owners)
-        let ownersByteLength := shl(5, ownersLength)
+        let ownersCount := calldataload(owners)
+        let ownersSize := shl(5, ownersCount)
         let threshold := calldataload(0x24)
         {
-          if gt(threshold, ownersLength) { _error("GS201") }
+          if gt(threshold, ownersCount) { _error("GS201") }
           if iszero(threshold) { _error("GS202") }
           let previousOwner := 1
           for {
-            let ownerPtr := add(owners, ownersByteLength)
+            let ownerPtr := add(owners, ownersSize)
           } gt(ownerPtr, owners) {
             ownerPtr := sub(ownerPtr, 0x20)
           } {
@@ -74,7 +78,7 @@ object "Safe" {
             0xe90b7bceb6e7df5418fb78d8ee546e97c83a08bbccc01a0644d599ccd2a7c2e0,
             previousOwner
           )
-          sstore(3, ownersLength)
+          sstore(3, ownersCount)
           sstore(4, threshold)
         }
 
@@ -122,9 +126,9 @@ object "Safe" {
         mstore(0x20, threshold)
         mstore(0x40, initializer)
         mstore(0x60, fallbackHandler)
-        calldatacopy(0x80, owners, add(ownersByteLength, 0x20))
+        calldatacopy(0x80, owners, add(ownersSize, 0x20))
         log2(
-          0x00, add(ownersByteLength, 0xa0),
+          0x00, add(ownersSize, 0xa0),
           0x141df868a6331af528e38c83b7aa03edc19be66e37ae67f9285bf4f8e3c6a1a8,
           caller()
         )
@@ -189,6 +193,110 @@ object "Safe" {
         mstore(0x40, returndatasize())
         returndatacopy(0x60, 0x00, returndatasize())
         return(0x00, add(returndatasize(), 0x60))
+      }
+
+      function addOwnerWithThreshold() {
+        _authorized()
+
+        let owner := shr(96, calldataload(0x10))
+        if or(lt(owner, 2), eq(owner, address())) { _error("GS203") }
+
+        mstore(0x00, owner)
+        mstore(0x20, 2)
+        let slot := keccak256(0x00, 0x40)
+        if sload(slot) { _error("GS204") }
+
+        let sentinel := 0xe90b7bceb6e7df5418fb78d8ee546e97c83a08bbccc01a0644d599ccd2a7c2e0
+        sstore(slot, sload(sentinel))
+        sstore(sentinel, owner)
+        sstore(3, add(sload(3), 1))
+        // event AddedOwner(address indexed owner)
+        log2(
+          0x00, 0x00,
+          0x9465fa0c962cc76958e6373a993326400c1c94f8be2fe3a952adfa7f60b2ea26,
+          owner
+        )
+        let threshold := calldataload(0x24)
+        if xor(threshold, sload(4)) {
+          _changeThreshold(threshold)
+        }
+        stop()
+      }
+
+      function removeOwner() {
+        _authorized()
+
+        let ownerCount := sub(sload(3), 1)
+        let threshold := calldataload(0x44)
+        if lt(ownerCount, threshold) { _error("GS201") }
+
+        let owner := shr(96, calldataload(0x30))
+        if lt(owner, 2) { _error("GS203") }
+
+        mstore(0x00, shr(96, calldataload(0x10)))
+        mstore(0x20, 2)
+        let prevSlot := keccak256(0x00, 0x40)
+        if xor(sload(prevSlot), owner) { _error("GS205") }
+
+        mstore(0x00, owner)
+        let slot := keccak256(0x00, 0x40)
+        sstore(prevSlot, sload(slot))
+        sstore(slot, 0)
+        sstore(3, ownerCount)
+        // event RemovedOwner(address indexed owner)
+        log2(
+          0x00, 0x00,
+          0xf8d49fc529812e9a7c5c50e69c20f0dccc0db8fa95c98bc58cc9a4f1c1299eaf,
+          owner
+        )
+        if xor(threshold, sload(4)) {
+          _changeThreshold(threshold)
+        }
+        stop()
+      }
+
+      function swapOwner() {
+        _authorized()
+
+        let newOwner := shr(96, calldataload(0x50))
+        if or(lt(newOwner, 2), eq(newOwner, address())) { _error("GS203") }
+
+        mstore(0x00, newOwner)
+        mstore(0x20, 2)
+        let newSlot := keccak256(0x00, 0x40)
+        if sload(newSlot) { _error("GS204") }
+
+        let oldOwner := shr(96, calldataload(0x30))
+        if lt(oldOwner, 2) { _error("GS203") }
+
+        mstore(0x00, shr(96, calldataload(0x10)))
+        let prevSlot := keccak256(0x00, 0x40)
+        if xor(sload(prevSlot), oldOwner) { _error("GS205") }
+
+        mstore(0x00, oldOwner)
+        let oldSlot := keccak256(0x00, 0x40)
+        sstore(newSlot, sload(oldSlot))
+        sstore(prevSlot, newOwner)
+        sstore(oldSlot, 0)
+        // event RemovedOwner(address indexed owner)
+        log2(
+          0x00, 0x00,
+          0xf8d49fc529812e9a7c5c50e69c20f0dccc0db8fa95c98bc58cc9a4f1c1299eaf,
+          oldOwner
+        )
+        // event AddedOwner(address indexed owner)
+        log2(
+          0x00, 0x00,
+          0x9465fa0c962cc76958e6373a993326400c1c94f8be2fe3a952adfa7f60b2ea26,
+          newOwner
+        )
+      }
+
+      function changeThreshold() {
+        _authorized()
+
+        _changeThreshold(calldataload(0x04))
+        stop()
       }
 
       function setFallbackHandler() {
@@ -397,6 +505,18 @@ object "Safe" {
         }
       }
       */
+
+      function _changeThreshold(threshold) {
+        if gt(threshold, sload(3)) { _error("GS201") }
+        if iszero(threshold) { _error("GS202") }
+        sstore(4, threshold)
+        // event ChangedThreshold(uint256 threshold)
+        mstore(0x00, threshold)
+        log1(
+          0x00, 0x20,
+          0x610f7ff2b304ae8903c3de74c60c6ab1f7d6226b3f52c5161905bb5ad4039c93
+        )
+      }
 
       function _internalSetFallbackHandler(fallbackHandler) {
         if eq(fallbackHandler, address()) { _error("GS400") }

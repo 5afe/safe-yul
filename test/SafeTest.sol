@@ -30,26 +30,29 @@ contract SafeTest is Test {
         return ISafe(payable(_factory.createProxyWithNonce(address(_singleton), "", 0x5afe)));
     }
 
-    function deployProxyWithFallback() internal returns (ISafeWithFallbackHandler proxy) {
-        ISafe safe = deployProxy();
-
-        vm.prank(address(safe));
-        safe.setFallbackHandler(address(_fallbackHandler));
-
-        return ISafeWithFallbackHandler(payable(safe));
+    function deployProxyWithDefaultSetup() internal returns (ISafeWithFallbackHandler proxy, Account memory owner) {
+        Account[] memory owners;
+        (proxy, owners) = deployProxyWithSetup(1, 1);
+        owner = owners[0];
     }
 
-    function deployProxyWithDefaultSetup() internal returns (ISafeWithFallbackHandler proxy, Account memory owner) {
-        owner = makeAccount("chuck norris");
-        address[] memory owners = new address[](1);
-        owners[0] = owner.addr;
+    function deployProxyWithSetup(uint256 ownerCount, uint256 threshold)
+        internal
+        returns (ISafeWithFallbackHandler proxy, Account[] memory owners)
+    {
+        owners = new Account[](ownerCount);
+        address[] memory ownerAddrs = new address[](ownerCount);
+        for (uint256 i = 0; i < ownerCount; i++) {
+            owners[i] = makeAccount(string(abi.encodePacked("chuck norris ", uint8(i + 0x30))));
+            ownerAddrs[i] = owners[i].addr;
+        }
         proxy = ISafeWithFallbackHandler(
             payable(
                 _factory.createProxyWithNonce(
                     address(_singleton),
                     abi.encodeCall(
                         _singleton.setup,
-                        (owners, 1, address(0), "", address(_fallbackHandler), address(0), 0, address(0))
+                        (ownerAddrs, threshold, address(0), "", address(_fallbackHandler), address(0), 0, address(0))
                     ),
                     0x5afe
                 )

@@ -5,7 +5,7 @@ import {ISafeWithFallbackHandler, SafeTest} from "test/SafeTest.sol";
 
 contract FallbackHandlerTest is SafeTest {
     function test_GetStorageAt() public {
-        ISafeWithFallbackHandler safe = deployProxyWithFallback();
+        (ISafeWithFallbackHandler safe,) = deployProxyWithDefaultSetup();
 
         assertEq(
             safe.getStorageAt(uint256(keccak256("fallback_manager.handler.address")), 2),
@@ -14,7 +14,7 @@ contract FallbackHandlerTest is SafeTest {
     }
 
     function test_Simulate() public {
-        ISafeWithFallbackHandler safe = deployProxyWithFallback();
+        (ISafeWithFallbackHandler safe,) = deployProxyWithDefaultSetup();
 
         address target = address(0x7a59e7);
         bytes memory callData = abi.encodeWithSignature("someCall(uint256)", 42);
@@ -25,7 +25,7 @@ contract FallbackHandlerTest is SafeTest {
     }
 
     function test_SimulateWithRevert() public {
-        ISafeWithFallbackHandler safe = deployProxyWithFallback();
+        (ISafeWithFallbackHandler safe,) = deployProxyWithDefaultSetup();
 
         address target = address(0x7a59e7);
         bytes memory callData = abi.encodeWithSignature("someCall(uint256)", 42);
