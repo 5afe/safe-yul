@@ -9,6 +9,22 @@ contract SafeFallbackAccessor {
     mapping(address => address) private _owners;
     uint256 private _ownerCount;
     uint256 private _threshold;
+    uint256 private _nonce;
+    bytes32 private _deprecatedDomainSeparator;
+    mapping(bytes32 => uint256) private _signedMessages;
+    mapping(address => mapping(bytes32 => uint256)) private _approvedHashes;
+
+    function nonce() external view returns (uint256 value) {
+        return _nonce;
+    }
+
+    function signedMessages(bytes32 hash) external view returns (bool signed) {
+        return _signedMessages[hash] != 0;
+    }
+
+    function approvedHashes(address approver, bytes32 hash) external view returns (bool approved) {
+        return _approvedHashes[approver][hash] != 0;
+    }
 
     function isModuleEnabled(address module) external view returns (bool) {
         return _SENTINEL != module && _modules[module] != address(0);

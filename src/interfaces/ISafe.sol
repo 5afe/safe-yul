@@ -12,6 +12,9 @@ interface ISafe {
     event SafeSetup(
         address indexed initiator, address[] owners, uint256 threshold, address initializer, address fallbackHandler
     );
+    event ApproveHash(bytes32 indexed hash, address indexed owner);
+    event ExecutionFailure(bytes32 indexed txHash, uint256 payment);
+    event ExecutionSuccess(bytes32 indexed txHash, uint256 payment);
 
     event EnabledModule(address indexed module);
     event DisabledModule(address indexed module);
@@ -41,6 +44,23 @@ interface ISafe {
         uint256 payment,
         address paymentReceiver
     ) external;
+    function execTransaction(
+        address to,
+        uint256 value,
+        bytes calldata data,
+        Operation operation,
+        uint256 safeTxGas,
+        uint256 baseGas,
+        uint256 gasPrice,
+        address gasToken,
+        address refundReceiver,
+        bytes memory signatures
+    ) external payable returns (bool success);
+    function checkSignatures(bytes32 dataHash, bytes memory data, bytes memory signatures) external view;
+    function checkNSignatures(bytes32 dataHash, bytes memory data, bytes memory signatures, uint256 requiredSignatures)
+        external
+        view;
+    function approveHash(bytes32 hash) external;
 
     function enableModule(address module) external;
     function disableModule(address prevModule, address module) external;

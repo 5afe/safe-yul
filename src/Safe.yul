@@ -22,6 +22,10 @@ object "Safe" {
       switch shr(224, calldataload(0x00))
       case 0xffa1ad74 { VERSION() }
       case 0xb63e800d { setup() }
+      case 0x6a761202 { execTransaction() }
+      case 0x934f3a11 { checkSignatures() }
+      case 0x12fb68e0 { checkNSignatures() }
+      case 0xd4d9bdcd { approveHash() }
       case 0x610b5925 { enableModule() }
       case 0xe009cfde { disableModule() }
       case 0x468721a7 { execTransactionFromModule() }
@@ -44,7 +48,7 @@ object "Safe" {
         if callvalue() { revert(0x00, 0x00) }
 
         mstore(0x00, 0x20)
-        mstore(0x3f, "\x0eSafe.yul 0.0.1")
+        mstore(0x3f, "\x090.0.1+Yul")
         return(0x00, 0x60)
       }
 
@@ -130,6 +134,43 @@ object "Safe" {
         log2(
           0x00, add(ownersSize, 0xa0),
           0x141df868a6331af528e38c83b7aa03edc19be66e37ae67f9285bf4f8e3c6a1a8,
+          caller()
+        )
+        stop()
+      }
+
+      function execTransaction() {
+        stop()
+      }
+
+      function checkSignatures() {
+        _checkNSignatures(sload(4))
+        stop()
+      }
+
+      function checkNSignatures() {
+        _checkNSignatures(calldataload(0x64))
+        stop()
+      }
+
+      function approveHash() {
+        if callvalue() { revert(0x00, 0x00) }
+
+        mstore(0x00, caller())
+        mstore(0x20, 2)
+        if iszero(sload(keccak256(0x00, 0x40))) { _error("GS030") }
+
+        mstore(0x00, caller())
+        mstore(0x20, 8)
+        mstore(0x20, keccak256(0x00, 0x40))
+        let hash := calldataload(0x04)
+        mstore(0x00, hash)
+        sstore(keccak256(0x00, 0x40), 1)
+        // event ApproveHash(bytes32 indexed hash, address indexed owner)
+        log3(
+          0x00, 0x00,
+          0xf2a0eb156472d1440255b0d7c1e19cc07115d1051fe605b0dce69acfec884d9c,
+          hash,
           caller()
         )
         stop()
@@ -405,6 +446,11 @@ object "Safe" {
       function _authorized() {
         if callvalue() { revert(0x00, 0x00) }
         if iszero(eq(caller(), address())) { _error("GS031") }
+      }
+
+      function _checkNSignatures(n) {
+        if callvalue() { revert(0x00, 0x00) }
+
       }
 
       function _execTransactionFromModule() -> success {
