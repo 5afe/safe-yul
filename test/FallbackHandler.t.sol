@@ -7,7 +7,10 @@ contract FallbackHandlerTest is SafeTest {
     function test_GetStorageAt() public {
         ISafeWithFallbackHandler safe = deployProxyWithFallback();
 
-        assertEq(safe.getStorageAt(uint256(keccak256("fallback_manager.handler.address")), 2), abi.encode(_handler, 0));
+        assertEq(
+            safe.getStorageAt(uint256(keccak256("fallback_manager.handler.address")), 2),
+            abi.encode(_fallbackHandler, 0)
+        );
     }
 
     function test_Simulate() public {

@@ -24,6 +24,18 @@ contract SafeFallbackHandler is ISafeFallbackHandler {
         _fallbackToAccessor();
     }
 
+    function getThreshold() external view returns (uint256) {
+        _fallbackToAccessor();
+    }
+
+    function isOwner(address) external view returns (bool) {
+        _fallbackToAccessor();
+    }
+
+    function getOwners() external view returns (address[] memory) {
+        _fallbackToAccessor();
+    }
+
     function getStorageAt(uint256, uint256) external view returns (bytes memory) {
         _fallbackToAccessor();
     }

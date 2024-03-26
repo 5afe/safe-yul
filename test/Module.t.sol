@@ -11,7 +11,7 @@ contract ModuleTest is SafeTest {
     event ExecutionFromModuleFailure(address indexed module);
 
     function test_EnableModule() public {
-        ISafeWithFallbackHandler safe = deployProxyWithFallback();
+        (ISafeWithFallbackHandler safe,) = deployProxyWithDefaultSetup();
 
         address[] memory modules = new address[](3);
         for (uint256 i = 0; i < modules.length; i++) {
@@ -32,14 +32,14 @@ contract ModuleTest is SafeTest {
     }
 
     function test_EnableModuleAuthorization() public {
-        ISafe safe = deployProxy();
+        (ISafeWithFallbackHandler safe,) = deployProxyWithDefaultSetup();
 
         vm.expectRevert("GS031");
         safe.enableModule(address(0xd001));
     }
 
     function test_EnableModuleRevertsOnInvalidParameter() public {
-        ISafe safe = deployProxy();
+        (ISafeWithFallbackHandler safe,) = deployProxyWithDefaultSetup();
 
         vm.startPrank(address(safe));
         vm.expectRevert("GS101");
@@ -49,7 +49,7 @@ contract ModuleTest is SafeTest {
     }
 
     function test_EnableModuleRevertsForAlreadyEnabledModule() public {
-        ISafe safe = deployProxy();
+        (ISafeWithFallbackHandler safe,) = deployProxyWithDefaultSetup();
 
         vm.startPrank(address(safe));
         safe.enableModule(address(0xd001));
@@ -58,7 +58,7 @@ contract ModuleTest is SafeTest {
     }
 
     function test_DisableModule() public {
-        ISafeWithFallbackHandler safe = deployProxyWithFallback();
+        (ISafeWithFallbackHandler safe,) = deployProxyWithDefaultSetup();
 
         address[] memory modules = new address[](3);
         for (uint256 i = modules.length; i > 0; i--) {
@@ -93,14 +93,14 @@ contract ModuleTest is SafeTest {
     }
 
     function test_DisableModuleAuthorization() public {
-        ISafe safe = deployProxy();
+        (ISafeWithFallbackHandler safe,) = deployProxyWithDefaultSetup();
 
         vm.expectRevert("GS031");
         safe.disableModule(address(1), address(0xd001));
     }
 
     function test_DisableModuleRevertsOnInvalidParameter() public {
-        ISafe safe = deployProxy();
+        (ISafeWithFallbackHandler safe,) = deployProxyWithDefaultSetup();
 
         vm.startPrank(address(safe));
         vm.expectRevert("GS101");
@@ -110,7 +110,7 @@ contract ModuleTest is SafeTest {
     }
 
     function test_DisableModuleRevertsForNonEnabledModule() public {
-        ISafe safe = deployProxy();
+        (ISafeWithFallbackHandler safe,) = deployProxyWithDefaultSetup();
 
         vm.startPrank(address(safe));
         safe.enableModule(address(0xd001));
@@ -119,7 +119,7 @@ contract ModuleTest is SafeTest {
     }
 
     function test_ExecuteFromModuleCall() public {
-        ISafe safe = deployProxy();
+        (ISafeWithFallbackHandler safe,) = deployProxyWithDefaultSetup();
 
         address module = address(0xd001);
         address target = address(0x7a59e7);
@@ -153,7 +153,7 @@ contract ModuleTest is SafeTest {
     }
 
     function test_ExecuteFromModuleRevertCall() public {
-        ISafe safe = deployProxy();
+        (ISafeWithFallbackHandler safe,) = deployProxyWithDefaultSetup();
 
         address module = address(0xd001);
         address target = address(0x7a59e7);
@@ -184,7 +184,7 @@ contract ModuleTest is SafeTest {
     }
 
     function test_ExecuteFromModuleDelegatecall() public {
-        ISafe safe = deployProxy();
+        (ISafeWithFallbackHandler safe,) = deployProxyWithDefaultSetup();
         SafeFallbackAccessor accessor = new SafeFallbackAccessor();
 
         address module = address(0xd001);

@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {ISafe, SafeTest} from "test/SafeTest.sol";
 
 contract FallbackTest is SafeTest {
-    event ChangedFallbackHandler(address indexed handler);
+    event ChangedFallbackHandler(address indexed fallbackHandler);
     event SafeReceived(address indexed sender, uint256 value);
 
     function test_Receive() public {
@@ -32,16 +32,17 @@ contract FallbackTest is SafeTest {
     function test_SetFallbackHandler() public {
         ISafe safe = deployProxy();
 
-        address handler = address(0xfa11bacc);
+        address fallbackHandler = address(0xfa11bacc);
 
         vm.expectEmit(address(safe));
-        emit ChangedFallbackHandler(handler);
+        emit ChangedFallbackHandler(fallbackHandler);
 
         vm.prank(address(safe));
-        safe.setFallbackHandler(handler);
+        safe.setFallbackHandler(fallbackHandler);
 
         assertEq(
-            vm.load(address(safe), keccak256("fallback_manager.handler.address")), bytes32(uint256(uint160(handler)))
+            vm.load(address(safe), keccak256("fallback_manager.handler.address")),
+            bytes32(uint256(uint160(fallbackHandler)))
         );
     }
 
@@ -82,16 +83,16 @@ contract FallbackTest is SafeTest {
         ISafe safe = deployProxy();
 
         address sender = 0x0101010101010101010101010101010101010101;
-        address handler = address(0xfa11bacc);
+        address fallbackHandler = address(0xfa11bacc);
         bytes memory callData = abi.encodeWithSignature("someCall(uint256)", (42));
         bytes memory returnData = "some return data";
 
         vm.prank(address(safe));
-        safe.setFallbackHandler(handler);
+        safe.setFallbackHandler(fallbackHandler);
 
         vm.prank(address(sender));
-        vm.mockCall(handler, 0, abi.encodePacked(callData, sender), returnData);
-        vm.expectCall(handler, abi.encodePacked(callData, sender));
+        vm.mockCall(fallbackHandler, 0, abi.encodePacked(callData, sender), returnData);
+        vm.expectCall(fallbackHandler, abi.encodePacked(callData, sender));
         bytes memory returnedData = callContract(address(safe), callData);
 
         assertEq(returnedData, returnData);
@@ -101,18 +102,21 @@ contract FallbackTest is SafeTest {
         ISafe safe = deployProxy();
 
         address sender = 0x0101010101010101010101010101010101010101;
-        address handler = address(0xfa11bacc);
+        address fallbackHandler = address(0xfa11bacc);
         bytes memory callData = abi.encodeWithSignature("someCall(uint256)", (42));
         bytes memory revertMessage = "some revert message";
 
         vm.prank(address(safe));
-        safe.setFallbackHandler(handler);
+        safe.setFallbackHandler(fallbackHandler);
 
         vm.prank(address(sender));
         vm.mockCallRevert(
-            handler, 0, abi.encodePacked(callData, sender), abi.encodeWithSignature("Error(string)", revertMessage)
+            fallbackHandler,
+            0,
+            abi.encodePacked(callData, sender),
+            abi.encodeWithSignature("Error(string)", revertMessage)
         );
-        vm.expectCall(handler, abi.encodePacked(callData, sender));
+        vm.expectCall(fallbackHandler, abi.encodePacked(callData, sender));
         vm.expectRevert(revertMessage);
         callContract(address(safe), callData);
     }

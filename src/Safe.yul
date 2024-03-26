@@ -3,13 +3,15 @@
 // - Don't use string literals where possible, they make the code bigger
 
 // Preprocessor wishlist:
-// - #define nonpayable() if callvalue() { _abort() }
+// - #define nonpayable() if callvalue() { revert(0x00, 0x00) }
 // - #define EVENT_NAME 0x...
-// - #define SENTINEL_MODULE 0xcc69885fda6bcc1a4ace058b4a62bf5e179ea78fd58a1ccd71c22cc9b688792f
+// - #define SENTINEL_MODULES 0xcc69885fda6bcc1a4ace058b4a62bf5e179ea78fd58a1ccd71c22cc9b688792f
+// - #define THRESHOLD 4
 // - #define IS_L2_SAFE ...
 
 object "Safe" {
   code {
+    sstore(4, 1)
     let size := datasize("runtime")
     datacopy(0x00, dataoffset("runtime"), size)
     return(0x00, size)
@@ -35,7 +37,7 @@ object "Safe" {
       }
 
       function VERSION() {
-        if callvalue() { _abort() }
+        if callvalue() { revert(0x00, 0x00) }
 
         mstore(0x00, 0x20)
         mstore(0x3f, "\x0eSafe.yul 0.0.1")
@@ -43,15 +45,97 @@ object "Safe" {
       }
 
       function setup() {
-        // TODO(nlordell): only partially implemented
-        sstore(0xcc69885fda6bcc1a4ace058b4a62bf5e179ea78fd58a1ccd71c22cc9b688792f, 1)
+        if sload(4) { _error("GS200") }
+
+        let owners := add(calldataload(0x04), 0x04)
+        let ownersLength := calldataload(owners)
+        let ownersByteLength := shl(5, ownersLength)
+        let threshold := calldataload(0x24)
+        {
+          if gt(threshold, ownersLength) { _error("GS201") }
+          if iszero(threshold) { _error("GS202") }
+          let previousOwner := 1
+          for {
+            let ownerPtr := add(owners, ownersByteLength)
+          } gt(ownerPtr, owners) {
+            ownerPtr := sub(ownerPtr, 0x20)
+          } {
+            let owner := calldataload(ownerPtr)
+            if lt(owner, 2) { _error("GS203") }
+            mstore(0x00, owner)
+            mstore(0x20, 2)
+            let slot := keccak256(0x00, 0x40)
+            if sload(slot) { _error("GS204") }
+            sstore(slot, previousOwner)
+            previousOwner := owner
+          }
+          // owners[SENTINEL_OWNERS]
+          sstore(
+            0xe90b7bceb6e7df5418fb78d8ee546e97c83a08bbccc01a0644d599ccd2a7c2e0,
+            previousOwner
+          )
+          sstore(3, ownersLength)
+          sstore(4, threshold)
+        }
+
+        let fallbackHandler := shr(96, calldataload(0x90))
+        if fallbackHandler {
+          _internalSetFallbackHandler(fallbackHandler)
+        }
+
+        let initializer := shr(96, calldataload(0x50))
+        {
+          let sentinel := 0xcc69885fda6bcc1a4ace058b4a62bf5e179ea78fd58a1ccd71c22cc9b688792f
+          if sload(sentinel) { _error("GS100") }
+          sstore(sentinel, 1)
+          if initializer {
+            let data := add(calldataload(0x64), 0x04)
+            let dataLength := calldataload(data)
+            calldatacopy(0x00, add(data, 0x20), dataLength)
+            if iszero(
+              delegatecall(
+                gas(),
+                initializer,
+                0x00, dataLength,
+                0x00, 0x00
+              )
+            ) {
+              _error("GS000")
+            }
+            if iszero(returndatasize()) {
+              if iszero(extcodesize(initializer)) { _error("GS002") }
+            }
+          }
+
+          let payment := calldataload(0xc4)
+          if payment {
+            _handlePayment(
+              shr(96, calldataload(0xb0)),
+              payment,
+              shr(96, calldataload(0xf0))
+            )
+          }
+
+          // event SafeSetup(address indexed initiator, address[] owners, uint256 threshold, address initializer, address fallbackHandler)
+          mstore(0x00, 0x80)
+          mstore(0x20, threshold)
+          mstore(0x40, initializer)
+          mstore(0x60, fallbackHandler)
+          calldatacopy(0x80, owners, add(ownersByteLength, 0x20))
+          log2(
+            0x00, add(ownersByteLength, 0xa0),
+            0x141df868a6331af528e38c83b7aa03edc19be66e37ae67f9285bf4f8e3c6a1a8,
+            caller()
+          )
+        }
+
       }
 
       function enableModule() {
         _authorized()
 
         let module := shr(96, calldataload(0x10))
-        if or(iszero(module), eq(module, 1)) { _error("GS101") }
+        if lt(module, 2) { _error("GS101") }
 
         mstore(0x00, module)
         mstore(0x20, 1)
@@ -74,7 +158,7 @@ object "Safe" {
         _authorized()
 
         let module := shr(96, calldataload(0x30))
-        if or(iszero(module), eq(module, 1)) { _error("GS101") }
+        if lt(module, 2) { _error("GS101") }
 
         mstore(0x20, 1)
         mstore(0x00, shr(96, calldataload(0x10)))
@@ -110,13 +194,13 @@ object "Safe" {
       function setFallbackHandler() {
         _authorized()
 
-        let handler := shr(96, calldataload(0x10))
-        _internalSetFallbackHandler(handler)
-        // event ChangedFallbackHandler(address indexed handler)
+        let fallbackHandler := shr(96, calldataload(0x10))
+        _internalSetFallbackHandler(fallbackHandler)
+        // event ChangedFallbackHandler(address indexed fallbackHandler)
         log2(
           0x00, 0x00,
           0x5ac6c46c93c8d0e53714ba3b53db3e7c046da994313d7ed0d192028bc7c228b0,
-          handler
+          fallbackHandler
         )
         stop()
       }
@@ -171,8 +255,8 @@ object "Safe" {
       }
 
       function receive() {
-        mstore(0x00, callvalue())
         // event SafeReceived(address indexed sender, uint256 value)
+        mstore(0x00, callvalue())
         log2(
           0x00, 0x20,
           0x3d0ce9bfc3ed7d6862dbb28b2dea94561fe714a1b4d019aa8af39730d1ad7c3d,
@@ -182,7 +266,7 @@ object "Safe" {
       }
 
       function fallback() {
-        if callvalue() { _abort() }
+        if callvalue() { revert(0x00, 0x00) }
 
         calldatacopy(0x00, 0x00, calldatasize())
         mstore(calldatasize(), shl(96, caller()))
@@ -202,10 +286,6 @@ object "Safe" {
         revert(0x00, returndatasize())
       }
 
-      function _abort() {
-        revert(0x00, 0x00)
-      }
-
       function _error(code) {
         mstore(0x00, hex"08c379a0")
         mstore(0x04, 0x20)
@@ -215,24 +295,25 @@ object "Safe" {
       }
 
       function _authorized() {
-        if callvalue() { _abort() }
+        if callvalue() { revert(0x00, 0x00) }
         if iszero(eq(caller(), address())) { _error("GS031") }
       }
 
       function _execTransactionFromModule() -> success {
-        if callvalue() { _abort() }
+        if callvalue() { revert(0x00, 0x00) }
 
         mstore(0x00, caller())
         mstore(0x20, 1)
         let slot := keccak256(0x00, 0x40)
-        if or(eq(caller(), 1), iszero(sload(slot))) { _error("GS104") }
+        if lt(caller(), 2) { _error("GS104") }
 
         success := _execute(
           calldataload(0x04),
           calldataload(0x24),
           add(calldataload(0x44), 0x04),
           calldataload(0x64),
-          not(0)
+          // Can't use gas() here because of ERC-4337.
+          0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
         )
         // event ExecutionFromModuleSuccess(address indexed module)
         // event ExecutionFromModuleFailure(address indexed module)
@@ -259,15 +340,70 @@ object "Safe" {
         switch operation
         case 0 { success := call(gasLimit, to, value, 0x00, dataLength, 0x00, 0x00) }
         case 1 { success := delegatecall(gasLimit, to, 0x00, dataLength, 0x00, 0x00) }
-        default { _abort() }
+        default { revert(0x00, 0x00) }
       }
 
-      function _internalSetFallbackHandler(handler) {
-        if eq(handler, address()) { _error("GS400") }
+      function _handlePayment(token, payment, receiver) {
+        receiver := or(receiver, mul(iszero(receiver), origin()))
+        switch token
+        case 0 {
+          if iszero(call(2300, receiver, payment, 0x00, 0x00, 0x00, 0x00)) {
+            _error("GS011")
+          }
+        }
+        default {
+          // token.transfer(receiver, payment)
+          mstore(0x00, hex"a9059cbb")
+          mstore(0x04, receiver)
+          mstore(0x24, payment)
+          let success := call(
+            sub(gas(), 10000),
+            token,
+            0,
+            0x00, 0x44,
+            0x00, 0x20
+          )
+          switch returndatasize()
+          case 0x00 {
+            success := mul(success, extcodesize(token))
+          }
+          case 0x20 {
+            success := and(success, eq(mload(0x00), 1))
+          }
+          default {
+            success := 0
+          }
+          if iszero(success) { _error("GS012") }
+        }
+      }
+
+      /*
+      function _handlePayment(gasUsed, baseGas, gasPrice, token, receiver) {
+        receiver := or(receiver, mul(iszero(receiver), origin()))
+        if and(iszero(token), gt(gasprice(), gasPrice)) {
+          gasPrice := gasprice()
+        }
+        let totalGas := add(gasUsed, baseGas)
+        if lt(totalGas, gasUsed) { revert(0x00, 0x00) }
+        let payment := mul(totalGas, gasPrice)
+        if xor(div(payment, gasPrice), totalGas) { revert(0x00, 0x00) }
+        let success
+        switch token
+        case 0 {
+          success := call(2300, receiver, payment, 
+        }
+        default {
+
+        }
+      }
+      */
+
+      function _internalSetFallbackHandler(fallbackHandler) {
+        if eq(fallbackHandler, address()) { _error("GS400") }
         // FALLBACK_HANDLER_STORAGE_SLOT
         sstore(
           0x6c9a6c4a39284e37ed1cf53d337577d14212a4870fb976a4366c693b939918d5,
-          handler
+          fallbackHandler
         )
       }
     }

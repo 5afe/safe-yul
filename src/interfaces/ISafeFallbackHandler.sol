@@ -9,6 +9,10 @@ interface ISafeFallbackHandler {
         returns (address[] memory modules, address next);
     function getModules() external view returns (address[] memory modules);
 
+    function getThreshold() external view returns (uint256 threshold);
+    function isOwner(address owner) external view returns (bool enabled);
+    function getOwners() external view returns (address[] memory owners);
+
     function getStorageAt(uint256 offset, uint256 length) external view returns (bytes memory);
     function simulate(address target, bytes calldata data) external returns (bytes memory result);
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.0;
 
-import {Test, console2} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {SafeProxyFactory} from "safe-smart-account/contracts/proxies/SafeProxyFactory.sol";
 import {SafeFallbackHandler} from "src/SafeFallbackHandler.sol";
 import {ISafe} from "src/interfaces/ISafe.sol";
@@ -11,7 +11,7 @@ import {BYTECODE} from "./SafeBytecode.sol";
 
 contract SafeTest is Test {
     ISafe internal _singleton;
-    SafeFallbackHandler internal _handler;
+    SafeFallbackHandler internal _fallbackHandler;
     SafeProxyFactory internal _factory;
 
     function setUp() public {
@@ -20,43 +20,41 @@ contract SafeTest is Test {
         assembly ("memory-safe") {
             safe := create2(0, add(bytecode, 0x20), mload(bytecode), 0x5afe)
         }
-        console2.logBytes(bytecode);
-        console2.log("safe", safe);
 
         _singleton = ISafe(safe);
-        _handler = new SafeFallbackHandler();
+        _fallbackHandler = new SafeFallbackHandler();
         _factory = new SafeProxyFactory();
     }
 
     function deployProxy() internal returns (ISafe proxy) {
-        return deployProxy(0x5afe);
+        return ISafe(payable(_factory.createProxyWithNonce(address(_singleton), "", 0x5afe)));
     }
 
-    function deployProxy(uint256 salt) internal returns (ISafe proxy) {
-        return ISafe(
+    function deployProxyWithFallback() internal returns (ISafeWithFallbackHandler proxy) {
+        ISafe safe = deployProxy();
+
+        vm.prank(address(safe));
+        safe.setFallbackHandler(address(_fallbackHandler));
+
+        return ISafeWithFallbackHandler(payable(safe));
+    }
+
+    function deployProxyWithDefaultSetup() internal returns (ISafeWithFallbackHandler proxy, Account memory owner) {
+        owner = makeAccount("chuck norris");
+        address[] memory owners = new address[](1);
+        owners[0] = owner.addr;
+        proxy = ISafeWithFallbackHandler(
             payable(
                 _factory.createProxyWithNonce(
                     address(_singleton),
                     abi.encodeCall(
-                        _singleton.setup, (new address[](0), 0, address(0), "", address(0), address(0), 0, address(0))
+                        _singleton.setup,
+                        (owners, 1, address(0), "", address(_fallbackHandler), address(0), 0, address(0))
                     ),
-                    salt
+                    0x5afe
                 )
             )
         );
-    }
-
-    function deployProxyWithFallback() internal returns (ISafeWithFallbackHandler proxy) {
-        return deployProxyWithFallback(0x5afe);
-    }
-
-    function deployProxyWithFallback(uint256 salt) internal returns (ISafeWithFallbackHandler proxy) {
-        ISafe safe = deployProxy(salt);
-
-        vm.prank(address(safe));
-        safe.setFallbackHandler(address(_handler));
-
-        return ISafeWithFallbackHandler(payable(safe));
     }
 
     function callContract(address target, bytes memory callData) internal returns (bytes memory returnData) {
