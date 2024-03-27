@@ -465,20 +465,30 @@ object "Safe" {
           let currentOwner
         } lt(ptr, end) {
           ptr := add(ptr, 0x41)
-          if iszero(gt(currentOwner, lastOwner)) { _error("GS026") }
+          mstore(0x00, currentOwner)
+          mstore(0x20, 2)
+          if or(
+            iszero(gt(currentOwner, lastOwner)),
+            iszero(sload(keccak256(0x00, 0x40)))
+          ) {
+            _error("GS026")
+          }
           lastOwner := currentOwner
         } {
           let v := byte(0, calldataload(add(ptr, 0x40)))
           if iszero(v) {
-            let magic := 0x20c13b0b
+            let magic := hex"20c13b0b"
             if iszero(dataPrefixLength) {
-              mstore(0x84, magic)
+              mstore(0xa0, magic)
               mstore(0xa4, 0x40)
               let data := add(calldataload(0x24), 0x04)
               let dataLength := calldataload(data)
               calldatacopy(0xe4, data, add(dataLength, 0x20))
+              mstore(add(0x104, dataLength), 0)
               if xor(dataHash, keccak256(0x104, dataLength)) { _error("GS027") }
-              dataPrefixLength := add(and(add(dataLength, 0x3f), not(0x1f)), 0x44)
+              let signatureOffset := and(add(dataLength, 0x7f), not(0x1f))
+              mstore(0xc4, signatureOffset)
+              dataPrefixLength := add(signatureOffset, 0x04)
             }
             currentOwner := and(
               calldataload(ptr),
@@ -495,6 +505,7 @@ object "Safe" {
             // checked: `s <= signaturesLength - 0x20`.
             if gt(length, sub(signaturesLength, add(s, 0x20))) { _error("GS023") }
             calldatacopy(add(0xa0, dataPrefixLength), offset, add(length, 0x20))
+            mstore(add(add(dataPrefixLength, length), 0xc0), 0)
             if iszero(
               staticcall(
                 gas(),
@@ -532,13 +543,13 @@ object "Safe" {
             mstore(0x20, dataHash)
             if gt(v, 30) {
               mstore(0x00, "\x00\x00\x00\x00\x19Ethereum Signed Message:\n32")
-              mstore(0x20, keccak256(0x04, 0x3d))
+              mstore(0x20, keccak256(0x04, 0x3c))
               v := sub(v, 4)
             }
             mstore(0x40, v)
             mstore(0x60, calldataload(ptr))
             mstore(0x80, calldataload(add(ptr, 0x20)))
-            mstore(0x00, 0x00)
+            mstore(0x00, 0)
             pop(staticcall(gas(), 1, 0x20, 0x80, 0x00, 0x20))
             currentOwner := mload(0x00)
           }

@@ -33,6 +33,10 @@ opcodes/%: build/yul/%.json
 		| awk '/PUSH[1-9][0-9]?/ { b=2+2*substr($$1,5)-length($$2); if (b!=0) { $$2=sprintf("0x%0" b "d%s",0,substr($$2,3)) } } { print }' \
 		| awk '{ printf "%04x: %s\n",x,$$0; x+=1 } /PUSH[1-9][0-9]?/ { x+=substr($$1,5) }'
 
+.PHONY: codesize/%
+codesize/%: build/yul/%.json
+	@$(JQ) -r '.evm.deployedBytecode.object | length | (.-2)/2' $<
+
 .PHONY: clean
 clean:
 	@rm -rf artifacts/ build/ test/SafeBytecode.sol
