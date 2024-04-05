@@ -5,7 +5,7 @@
 - [~] Safe
   - [x] setup
   - [ ] execTransaction
-  - [~] check(N)Signatures
+  - [x] check(N)Signatures
   - [x] approveHash
 - [x] Singleton
 - [x] NativeCurrencyPaymentFallback
@@ -23,6 +23,8 @@
 While this implementation strives to be a pure port, there are a couple
 functional differences with the reference implementation:
 
+- Most view methods are implemented in the fallback handler using simulation
+  techniques (`simulateAndRevert`).
 - Calldata length is not verified in function calls. This is a difference with
   the Solidity ABI in general, but not a security issue for the account, but may
   be unexpected if callers make certain (unsafe) assumptions about how contracts

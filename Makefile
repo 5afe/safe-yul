@@ -6,7 +6,7 @@ FOUNDRY := ghcr.io/foundry-rs/foundry
 
 FORGEBUILDFLAGS ?=
 FORGEFMTFLAGS ?=
-FORGETESTFLAGS ?= '-v'
+FORGETESTFLAGS ?=
 
 DOCKERSOLC := @$(DOCKER) run --rm -i $(SOLC)
 DOCKERFOUNDRY := $(DOCKER) run --rm -v $(PWD):/src -w /src $(FOUNDRY)

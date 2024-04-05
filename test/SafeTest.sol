@@ -41,11 +41,24 @@ contract SafeTest is Test {
         returns (ISafeWithFallbackHandler proxy, Account[] memory owners)
     {
         owners = new Account[](ownerCount);
-        address[] memory ownerAddrs = new address[](ownerCount);
+        Account memory temp;
         for (uint256 i = 0; i < ownerCount; i++) {
             owners[i] = makeAccount(string(abi.encodePacked("chuck norris ", uint8(i + 0x30))));
+            for (uint256 j = i; j > 0; j--) {
+                if (owners[j].addr > owners[j - 1].addr) {
+                    break;
+                }
+                temp = owners[j - 1];
+                owners[j - 1] = owners[j];
+                owners[j] = temp;
+            }
+        }
+
+        address[] memory ownerAddrs = new address[](ownerCount);
+        for (uint256 i = 0; i < ownerCount; i++) {
             ownerAddrs[i] = owners[i].addr;
         }
+
         proxy = ISafeWithFallbackHandler(
             payable(
                 _factory.createProxyWithNonce(
