@@ -35,7 +35,7 @@ opcodes/%: build/yul/%.json
 
 .PHONY: codesize/%
 codesize/%: build/yul/%.json
-	@$(JQ) -r '.evm.deployedBytecode.object | length | (.-2)/2' $<
+	@eval "$$($(JQ) -r '.evm.deployedBytecode.object | length | (.-2)/2 | ["printf", "%d (%.2f%%)\n", ., . * 100 / 24576] | @sh' $<)"
 
 .PHONY: clean
 clean:

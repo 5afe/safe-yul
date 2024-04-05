@@ -166,6 +166,145 @@ object "Safe" {
       }
 
       function execTransaction() {
+        let _nonce := sload(5)
+        let txDataLength := 42
+        _encodeTransactionData(0x104, _nonce)
+        mstore(0xe4, txDataLength)
+        mstore(0x146, 0)
+        sstore(5, add(_nonce, 1))
+        let txHash := keccak256(0x104, txDataLength)
+        let signatures := add(calldataload(0x124), 0x04)
+        _innerCheckNSignatures(
+          txHash,
+          0x00,
+          txDataLength,
+          signatures,
+          sload(4)
+        )
+        // GUARD_STORAGE_SLOT
+        let guard := sload(
+          0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8
+        )
+        if guard {
+          // Guard.checkTransaction
+          mstore(0, hex"fefefefe")
+          calldatacopy(0x04, 0x04, 0x120)
+          mstore(0x44, 0x160)
+          let data := add(calldataload(0x44), 0x04)
+          let dataLength := calldataload(data)
+          calldatacopy(0x164, data, add(dataLength, 0x20))
+          let dataEnd := add(0x184, dataLength)
+          mstore(dataEnd, 0)
+          let signaturesOffset := and(add(dataEnd, 0x1f), not(0x1f))
+          let signaturesLength := calldataload(signatures)
+          mstore(0x124, signaturesLength)
+          let signaturesEncodedLength := add(signaturesLength, 0x20)
+          let signaturesStart := add(signaturesOffset, 0x04)
+          calldatacopy(signaturesStart, signatures, signaturesEncodedLength)
+          let signaturesEnd := add(signaturesStart, signaturesEncodedLength)
+          mstore(signaturesEnd, 0)
+          mstore(0x144, caller())
+          if iszero(
+            call(
+              gas(),
+              guard,
+              0,
+              0x00, add(and(add(signaturesEnd, 0x1f), not(0x1f)), 0x04),
+              0x00, 0x00
+            )
+          ) {
+            returndatacopy(0x00, 0x00, returndatasize())
+            revert(0x00, returndatasize())
+          }
+        }
+        let safeTxGas := calldataload(0x84)
+        if byte(0, safeTxGas) { revert(0x00, 0x00) }
+        {
+          let safeTxGasEip150 := div(shl(safeTxGas, 6), 63)
+          let safeTxGasBuf := add(safeTxGas, 2500)
+          let safeTxGasMask := sub(lt(safeTxGasEip150, safeTxGasBuf), 1)
+          if lt(
+            gas(),
+            add(
+              or(
+                and(safeTxGasMask, safeTxGasEip150),
+                and(not(safeTxGasMask), safeTxGasBuf)
+              ),
+              500
+            )
+          ) {
+            _error("GS010")
+          }
+        }
+        let gasUsed := gas()
+        let gasPrice := calldataload(0xc4)
+        let gasLimit := safeTxGas
+        if iszero(gasPrice) {
+          gasLimit := sub(gas(), 2500)
+        }
+        let success := _execute(
+          calldataload(0x04),
+          calldataload(0x24),
+          add(calldataload(0x44), 0x04),
+          calldataload(0x64),
+          gasLimit
+        )
+        gasUsed := sub(gasUsed, gas())
+        if iszero(
+          or(
+            success,
+            or(safeTxGas, gasPrice)
+          )
+        ) {
+          _error("GS013")
+        }
+        let payment := 0
+        if gasPrice {
+          let token := calldataload(0xe4)
+          if and(iszero(token), gt(gasPrice, gasprice())) {
+            gasPrice := gasprice()
+          }
+          let totalGas := add(gasUsed, calldataload(0xa4))
+          if lt(totalGas, gasUsed) { revert(0x00, 0x00) }
+          payment := mul(totalGas, gasPrice)
+          if xor(div(payment, gasPrice), totalGas) { revert(0x00, 0x00) }
+          _handlePayment(token, payment, calldataload(0x104))
+        }
+        // event ExecutionSuccess(bytes32 indexed txHash, uint256 payment)
+        // event ExecutionFailure(bytes32 indexed txHash, uint256 payment)
+        mstore(0x00, payment)
+        log2(
+          0x00, 0x20,
+          or(
+            mul(
+              success,
+              0x442e715f626346e8c54381002da614f62bee8d27386535b2521ec8540898556e
+            ),
+            mul(
+              iszero(success),
+              0x23428b18acfb3ea64b08dc0c1d296ea9c09702c09083ca5272e64d115b687d23
+            )
+          ),
+          txHash
+        )
+        if guard {
+          // Guard.checkAfterExecution
+          mstore(0, hex"fefefefe")
+          mstore(0x04, txHash)
+          mstore(0x24, success)
+          if iszero(
+            call(
+              gas(),
+              guard,
+              0,
+              0x00, 0x44,
+              0x00, 0x00
+            )
+          ) {
+            returndatacopy(0x00, 0x00, returndatasize())
+            revert(0x00, returndatasize())
+          }
+        }
         stop()
       }
 
@@ -535,7 +674,7 @@ object "Safe" {
           calldataload(0x04),
           add(calldataload(0x24), 0x04),
           0x00,
-          add(calldataload(0x44), 0x24),
+          add(calldataload(0x44), 0x04),
           n
         )
         stop()
@@ -544,13 +683,14 @@ object "Safe" {
       function _innerCheckNSignatures(dataHash, data, dataLength, signatures, n) {
         if callvalue() { revert(0x00, 0x00) }
 
-        let signaturesLength := calldataload(sub(signatures, 0x20))
+        let signaturesLength := calldataload(signatures)
+        let signaturesPtr := add(signatures, 0x20)
         if lt(div(signaturesLength, 0x41), n) { _error("GS020") }
         let fixedLength := mul(n, 0x41)
 
         let dataPrefixLength := 0
         for {
-          let ptr := signatures
+          let ptr := signaturesPtr
           let end := add(ptr, fixedLength)
           let lastOwner := 1
           let currentOwner
@@ -591,7 +731,7 @@ object "Safe" {
             // `signaturesLength - 0x20` can't overflow as in order to reach
             // this point: `signaturesLength >= fixedLength >= 0x41`
             if gt(s, sub(signaturesLength, 0x20)) { _error("GS022") }
-            let offset := add(signatures, s)
+            let offset := add(signaturesPtr, s)
             let length := calldataload(offset)
             // `signaturesLength - s - 0x20` can't overflow as we already
             // checked: `s <= signaturesLength - 0x20`.
@@ -755,27 +895,6 @@ object "Safe" {
           if iszero(success) { _error("GS012") }
         }
       }
-
-      /*
-      function _handlePayment(gasUsed, baseGas, gasPrice, token, receiver) {
-        receiver := or(receiver, mul(iszero(receiver), origin()))
-        if and(iszero(token), gt(gasprice(), gasPrice)) {
-          gasPrice := gasprice()
-        }
-        let totalGas := add(gasUsed, baseGas)
-        if lt(totalGas, gasUsed) { revert(0x00, 0x00) }
-        let payment := mul(totalGas, gasPrice)
-        if xor(div(payment, gasPrice), totalGas) { revert(0x00, 0x00) }
-        let success
-        switch token
-        case 0 {
-          success := call(2300, receiver, payment, 
-        }
-        default {
-
-        }
-      }
-      */
 
       function _changeThreshold(threshold) {
         if gt(threshold, sload(3)) { _error("GS201") }
