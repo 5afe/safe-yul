@@ -1,23 +1,5 @@
 # Safe Smart Accout Implemented in Yul
 
-## Progress
-
-- [~] Safe
-  - [x] setup
-  - [ ] execTransaction
-  - [x] check(N)Signatures
-  - [x] approveHash
-- [x] Singleton
-- [x] NativeCurrencyPaymentFallback
-- [x] ModuleManager
-- [x] OwnerManager
-- [x] SignatureDecoder
-- [x] SecuredTokenTransfer
-- [x] ISignatureValidatorConstants
-- [x] FallbackManager
-- [x] StorageAccessible
-- [x] GuardManager
-
 ## Functional Differences
 
 While this implementation strives to be a pure port, there are a couple

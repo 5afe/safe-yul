@@ -167,7 +167,7 @@ object "Safe" {
 
       function execTransaction() {
         let _nonce := sload(5)
-        let txDataLength := 42
+        let txDataLength := 0x42
         _encodeTransactionData(0x104, _nonce)
         mstore(0xe4, txDataLength)
         mstore(0x146, 0)
@@ -218,7 +218,6 @@ object "Safe" {
           }
         }
         let safeTxGas := calldataload(0x84)
-        if byte(0, safeTxGas) { revert(0x00, 0x00) }
         {
           let safeTxGasEip150 := div(shl(safeTxGas, 6), 63)
           let safeTxGasBuf := add(safeTxGas, 2500)
@@ -236,12 +235,12 @@ object "Safe" {
             _error("GS010")
           }
         }
-        let gasUsed := gas()
         let gasPrice := calldataload(0xc4)
         let gasLimit := safeTxGas
         if iszero(gasPrice) {
           gasLimit := sub(gas(), 2500)
         }
+        let gasUsed := gas()
         let success := _execute(
           calldataload(0x04),
           calldataload(0x24),
@@ -267,7 +266,7 @@ object "Safe" {
           let totalGas := add(gasUsed, calldataload(0xa4))
           if lt(totalGas, gasUsed) { revert(0x00, 0x00) }
           payment := mul(totalGas, gasPrice)
-          if xor(div(payment, gasPrice), totalGas) { revert(0x00, 0x00) }
+          if xor(div(payment, totalGas), gasPrice) { revert(0x00, 0x00) }
           _handlePayment(token, payment, calldataload(0x104))
         }
         // event ExecutionSuccess(bytes32 indexed txHash, uint256 payment)
@@ -305,7 +304,8 @@ object "Safe" {
             revert(0x00, returndatasize())
           }
         }
-        stop()
+        mstore(0x00, success)
+        return(0x00, 0x20)
       }
 
       function checkSignatures() {

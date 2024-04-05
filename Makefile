@@ -8,11 +8,15 @@ FORGEBUILDFLAGS ?=
 FORGEFMTFLAGS ?=
 FORGETESTFLAGS ?=
 
-DOCKERSOLC := @$(DOCKER) run --rm -i $(SOLC)
+DOCKERSOLC := $(DOCKER) run --rm -i $(SOLC)
 DOCKERFOUNDRY := $(DOCKER) run --rm -v $(PWD):/src -w /src $(FOUNDRY)
 
 .PHONY: all
 all: build
+
+.PHONY: ci
+ci: clean
+	@$(MAKE) build fmt test FORGEFMTFLAGS=--check FORGETESTFLAGS=-vvvv
 
 .PHONY: build
 build: artifacts/Safe.json
