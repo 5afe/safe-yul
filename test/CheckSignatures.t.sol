@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {ISafe, ISafeWithFallbackHandler, SafeTest} from "test/SafeTest.sol";
 
-contract MiscellaneousTest is SafeTest {
+contract CheckSignaturesTest is SafeTest {
     function test_CheckSignatures() public {
         (ISafe safe, Account memory owner) = deployProxyWithDefaultSetup();
 

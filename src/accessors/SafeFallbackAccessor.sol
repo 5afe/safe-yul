@@ -14,20 +14,8 @@ contract SafeFallbackAccessor {
     mapping(bytes32 => uint256) private _signedMessages;
     mapping(address => mapping(bytes32 => uint256)) private _approvedHashes;
 
-    function nonce() external view returns (uint256 value) {
-        return _nonce;
-    }
-
     function signedMessages(bytes32 hash) external view returns (bool signed) {
         return _signedMessages[hash] != 0;
-    }
-
-    function approvedHashes(address approver, bytes32 hash) external view returns (bool approved) {
-        return _approvedHashes[approver][hash] != 0;
-    }
-
-    function isModuleEnabled(address module) external view returns (bool) {
-        return _SENTINEL != module && _modules[module] != address(0);
     }
 
     function getModulesPaginated(address start, uint256 pageSize)
@@ -63,24 +51,6 @@ contract SafeFallbackAccessor {
         return modules;
     }
 
-    function getStorageAt(uint256 offset, uint256 length) external view returns (bytes memory result) {
-        result = new bytes(length * 32);
-        for (uint256 index = 0; index < length; index++) {
-            assembly ("memory-safe") {
-                let word := sload(add(offset, index))
-                mstore(add(add(result, 0x20), mul(index, 0x20)), word)
-            }
-        }
-    }
-
-    function getThreshold() external view returns (uint256 threshold) {
-        return _threshold;
-    }
-
-    function isOwner(address owner) external view returns (bool enabled) {
-        return owner != _SENTINEL && _owners[owner] != address(0);
-    }
-
     function getOwners() external view returns (address[] memory array) {
         array = new address[](_ownerCount);
 
@@ -90,6 +60,16 @@ contract SafeFallbackAccessor {
             array[index] = currentOwner;
             currentOwner = _owners[currentOwner];
             index++;
+        }
+    }
+
+    function getStorageAt(uint256 offset, uint256 length) external view returns (bytes memory result) {
+        result = new bytes(length * 32);
+        for (uint256 index = 0; index < length; index++) {
+            assembly ("memory-safe") {
+                let word := sload(add(offset, index))
+                mstore(add(add(result, 0x20), mul(index, 0x20)), word)
+            }
         }
     }
 }

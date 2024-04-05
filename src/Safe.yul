@@ -21,19 +21,27 @@ object "Safe" {
     code {
       switch shr(224, calldataload(0x00))
       case 0xffa1ad74 { VERSION() }
+      case 0xaffed0e0 { nonce() }
+      case 0x7d832974 { approvedHashes() }
       case 0xb63e800d { setup() }
       case 0x6a761202 { execTransaction() }
       case 0x934f3a11 { checkSignatures() }
       case 0x12fb68e0 { checkNSignatures() }
       case 0xd4d9bdcd { approveHash() }
+      case 0xf698da25 { domainSeparator() }
+      case 0xe86637db { encodeTransactionData() }
+      case 0xd8d11f78 { getTransactionHash() }
       case 0x610b5925 { enableModule() }
       case 0xe009cfde { disableModule() }
       case 0x468721a7 { execTransactionFromModule() }
       case 0x5229073f { execTransactionFromModuleReturnData() }
+      case 0x2d9ad53d { isModuleEnabled() }
       case 0x0d582f13 { addOwnerWithThreshold() }
       case 0xf8dc5dd9 { removeOwner() }
       case 0xe318b52b { swapOwner() }
       case 0x694e80c3 { changeThreshold() }
+      case 0xe75235b8 { getThreshold() }
+      case 0x2f54bf6e { isOwner() }
       case 0xf08a0323 { setFallbackHandler() }
       case 0xe19a9dd9 { setGuard() }
       case 0xb4faba09 { simulateAndRevert() }
@@ -50,6 +58,24 @@ object "Safe" {
         mstore(0x00, 0x20)
         mstore(0x3f, "\x090.0.1+Yul")
         return(0x00, 0x60)
+      }
+
+      function nonce() {
+        if callvalue() { revert(0x00, 0x00) }
+
+        mstore(0x00, sload(5))
+        return(0x00, 0x20)
+      }
+
+      function approvedHashes() {
+        if callvalue() { revert(0x00, 0x00) }
+
+        mstore(0x20, 8)
+        mstore(0x00, shr(96, calldataload(0x10)))
+        mstore(0x20, keccak256(0x00, 0x40))
+        mstore(0x00, calldataload(0x24))
+        mstore(0x00, sload(keccak256(0x00, 0x40)))
+        return(0x00, 0x20)
       }
 
       function setup() {
@@ -145,12 +171,10 @@ object "Safe" {
 
       function checkSignatures() {
         _checkNSignatures(sload(4))
-        stop()
       }
 
       function checkNSignatures() {
         _checkNSignatures(calldataload(0x64))
-        stop()
       }
 
       function approveHash() {
@@ -160,8 +184,8 @@ object "Safe" {
         mstore(0x20, 2)
         if iszero(sload(keccak256(0x00, 0x40))) { _error("GS030") }
 
-        mstore(0x00, caller())
         mstore(0x20, 8)
+        mstore(0x00, caller())
         mstore(0x20, keccak256(0x00, 0x40))
         let hash := calldataload(0x04)
         mstore(0x00, hash)
@@ -174,6 +198,31 @@ object "Safe" {
           caller()
         )
         stop()
+      }
+
+      function domainSeparator() {
+        if callvalue() { revert(0x00, 0x00) }
+
+        mstore(0x00, _domainSeparator())
+        return(0x00, 0x20)
+      }
+
+      function encodeTransactionData() {
+        if callvalue() { revert(0x00, 0x00) }
+
+        _encodeTransactionData(0x40, calldataload(0x124))
+        mstore(0x00, 0x20)
+        mstore(0x20, 0x42)
+        mstore(0x82, 0)
+        return(0x00, 0xa0)
+      }
+
+      function getTransactionHash() {
+        if callvalue() { revert(0x00, 0x00) }
+
+        _encodeTransactionData(0x00, calldataload(0x124))
+        mstore(0x00, keccak256(0x00, 0x42))
+        return(0x00, 0x20)
       }
 
       function enableModule() {
@@ -234,6 +283,18 @@ object "Safe" {
         mstore(0x40, returndatasize())
         returndatacopy(0x60, 0x00, returndatasize())
         return(0x00, add(returndatasize(), 0x60))
+      }
+
+      function isModuleEnabled() {
+        if callvalue() { revert(0x00, 0x00) }
+
+        let module := shr(96, calldataload(0x10))
+        if gt(module, 1) {
+          mstore(0x00, module)
+          mstore(0x20, 1)
+          mstore(0x00, iszero(iszero(sload(keccak256(0x00, 0x40)))))
+        }
+        return(0x00, 0x20)
       }
 
       function addOwnerWithThreshold() {
@@ -338,6 +399,25 @@ object "Safe" {
 
         _changeThreshold(calldataload(0x04))
         stop()
+      }
+
+      function getThreshold() {
+        if callvalue() { revert(0x00, 0x00) }
+
+        mstore(0x00, sload(4))
+        return(0x00, 0x20)
+      }
+
+      function isOwner() {
+        if callvalue() { revert(0x00, 0x00) }
+
+        let owner := shr(96, calldataload(0x10))
+        if gt(owner, 1) {
+          mstore(0x00, owner)
+          mstore(0x20, 2)
+          mstore(0x00, iszero(iszero(sload(keccak256(0x00, 0x40)))))
+        }
+        return(0x00, 0x20)
       }
 
       function setFallbackHandler() {
@@ -451,12 +531,23 @@ object "Safe" {
       function _checkNSignatures(n) {
         if callvalue() { revert(0x00, 0x00) }
 
-        let signatures := add(calldataload(0x44), 0x24)
+        _innerCheckNSignatures(
+          calldataload(0x04),
+          add(calldataload(0x24), 0x04),
+          0x00,
+          add(calldataload(0x44), 0x24),
+          n
+        )
+        stop()
+      }
+
+      function _innerCheckNSignatures(dataHash, data, dataLength, signatures, n) {
+        if callvalue() { revert(0x00, 0x00) }
+
         let signaturesLength := calldataload(sub(signatures, 0x20))
         if lt(div(signaturesLength, 0x41), n) { _error("GS020") }
         let fixedLength := mul(n, 0x41)
 
-        let dataHash := calldataload(0x04)
         let dataPrefixLength := 0
         for {
           let ptr := signatures
@@ -481,11 +572,12 @@ object "Safe" {
             if iszero(dataPrefixLength) {
               mstore(0xa0, magic)
               mstore(0xa4, 0x40)
-              let data := add(calldataload(0x24), 0x04)
-              let dataLength := calldataload(data)
-              calldatacopy(0xe4, data, add(dataLength, 0x20))
-              mstore(add(0x104, dataLength), 0)
-              if xor(dataHash, keccak256(0x104, dataLength)) { _error("GS027") }
+              if data {
+                dataLength := calldataload(data)
+                calldatacopy(0xe4, data, add(dataLength, 0x20))
+                mstore(add(0x104, dataLength), 0)
+                if xor(dataHash, keccak256(0x104, dataLength)) { _error("GS027") }
+              }
               let signatureOffset := and(add(dataLength, 0x7f), not(0x1f))
               mstore(0xc4, signatureOffset)
               dataPrefixLength := add(signatureOffset, 0x04)
@@ -531,8 +623,8 @@ object "Safe" {
               0xffffffffffffffffffffffffffffffffffffffff
             )
             if xor(currentOwner, caller()) {
-              mstore(0x00, currentOwner)
               mstore(0x20, 8)
+              mstore(0x00, currentOwner)
               mstore(0x20, keccak256(0x00, 0x40))
               mstore(0x00, dataHash)
               if iszero(sload(keccak256(0x00, 0x40))) { _error("GS025") }
@@ -554,6 +646,36 @@ object "Safe" {
             currentOwner := mload(0x00)
           }
         }
+      }
+
+      function _domainSeparator() -> result {
+        mstore(0x00, 0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218)
+        mstore(0x20, chainid())
+        mstore(0x40, address())
+        result := keccak256(0x00, 0x60)
+      }
+
+      function _encodeTransactionData(ptr, _nonce) {
+        let data := add(calldataload(0x44), 0x04)
+        let dataLength := calldataload(data)
+        calldatacopy(0x00, add(data, 0x20), dataLength)
+        let dataHash := keccak256(0x00, dataLength)
+        mstore(0x00, 0xbb8310d486368db6bd6f849402fdd73ad53d316b5a4b2644ad6efe0f941286d8)
+        mstore(0x20, shr(96, calldataload(0x10)))
+        mstore(0x40, calldataload(0x24))
+        mstore(0x60, dataHash)
+        mstore(0x80, and(calldataload(0x64), 1))
+        mstore(0xa0, calldataload(0x84))
+        mstore(0xc0, calldataload(0xa4))
+        mstore(0xe0, calldataload(0xc4))
+        mstore(0x100, calldataload(0xe4))
+        mstore(0x120, calldataload(0x104))
+        mstore(0x140, _nonce)
+        let safeTxHash := keccak256(0x00, 0x160)
+        let domain := _domainSeparator()
+        mstore(ptr, hex"1901")
+        mstore(add(ptr, 0x02), domain)
+        mstore(add(ptr, 0x22), safeTxHash)
       }
 
       function _execTransactionFromModule() -> success {

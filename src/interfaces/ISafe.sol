@@ -34,6 +34,9 @@ interface ISafe {
 
     function VERSION() external view returns (string memory);
 
+    function nonce() external view returns (uint256 value);
+    function approvedHashes(address approver, bytes32 hash) external view returns (bool approved);
+
     function setup(
         address[] calldata owners,
         uint256 threshold,
@@ -61,6 +64,31 @@ interface ISafe {
         external
         view;
     function approveHash(bytes32 hash) external;
+    function domainSeparator() external view returns (bytes32 value);
+    function encodeTransactionData(
+        address to,
+        uint256 value,
+        bytes calldata data,
+        ISafe.Operation operation,
+        uint256 safeTxGas,
+        uint256 baseGas,
+        uint256 gasPrice,
+        address gasToken,
+        address refundReceiver,
+        uint256 nonce
+    ) external view returns (bytes memory transactionData);
+    function getTransactionHash(
+        address to,
+        uint256 value,
+        bytes calldata data,
+        ISafe.Operation operation,
+        uint256 safeTxGas,
+        uint256 baseGas,
+        uint256 gasPrice,
+        address gasToken,
+        address refundReceiver,
+        uint256 nonce
+    ) external view returns (bytes32 transactionHash);
 
     function enableModule(address module) external;
     function disableModule(address prevModule, address module) external;
@@ -70,11 +98,14 @@ interface ISafe {
     function execTransactionFromModuleReturnData(address to, uint256 value, bytes calldata data, Operation operation)
         external
         returns (bool success, bytes memory returnData);
+    function isModuleEnabled(address module) external view returns (bool enabled);
 
     function addOwnerWithThreshold(address owner, uint256 threshold) external;
     function removeOwner(address prevOwner, address owner, uint256 threshold) external;
     function swapOwner(address prevOwner, address oldOwner, address newOwner) external;
     function changeThreshold(uint256 threshold) external;
+    function getThreshold() external view returns (uint256 threshold);
+    function isOwner(address owner) external view returns (bool enabled);
 
     function setFallbackHandler(address fallbackHandler) external;
 

@@ -14,6 +14,8 @@ contract OwnerTest is SafeTest {
 
         address newOwner = address(0xacc0);
 
+        assertFalse(safe.isOwner(newOwner));
+
         vm.expectEmit(address(safe));
         emit AddedOwner(newOwner);
 
@@ -30,7 +32,7 @@ contract OwnerTest is SafeTest {
     }
 
     function test_AddOwnerAndSetThreshold() public {
-        (ISafeWithFallbackHandler safe,) = deployProxyWithDefaultSetup();
+        (ISafe safe,) = deployProxyWithDefaultSetup();
 
         address newOwner = address(0xacc0);
 
@@ -120,7 +122,7 @@ contract OwnerTest is SafeTest {
     }
 
     function test_RemoveOwnerAndSetThreshold() public {
-        (ISafeWithFallbackHandler safe, Account[] memory owners) = deployProxyWithSetup(3, 1);
+        (ISafe safe, Account[] memory owners) = deployProxyWithSetup(3, 1);
 
         vm.expectEmit(address(safe));
         emit ChangedThreshold(2);
@@ -295,7 +297,7 @@ contract OwnerTest is SafeTest {
     }
 
     function test_ChangeThreshold() public {
-        (ISafeWithFallbackHandler safe,) = deployProxyWithSetup(3, 1);
+        (ISafe safe,) = deployProxyWithSetup(3, 1);
 
         vm.expectEmit(address(safe));
         emit ChangedThreshold(2);
