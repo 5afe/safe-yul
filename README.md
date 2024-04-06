@@ -5,8 +5,8 @@
 While this implementation strives to be a pure port, there are a couple
 functional differences with the reference implementation:
 
-- Most view methods are implemented in the fallback handler using simulation
-  techniques (`simulateAndRevert`).
+- Some view methods are implemented in the fallback handler using simulation
+  techniques (`simulateAndRevert`) instead of in the account itself.
 - Calldata length is not verified in function calls. This is a difference with
   the Solidity ABI in general, but not a security issue for the account, but may
   be unexpected if callers make certain (unsafe) assumptions about how contracts
