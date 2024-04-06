@@ -424,12 +424,4 @@ contract ExecTransactionTest is SafeTest {
             safe.execTransaction(to, 0, "", ISafe.Operation.CALL, 0, 0, 1, token, receiver, signatures);
         }
     }
-
-    function test_TransactionGuard() public {
-        revert("todo");
-    }
-
-    function test_TransactionGuardReverts() public {
-        revert("todo");
-    }
 }

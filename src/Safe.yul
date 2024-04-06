@@ -187,19 +187,18 @@ object "Safe" {
         )
         if guard {
           // Guard.checkTransaction
-          mstore(0, hex"fefefefe")
+          mstore(0, hex"75f0bb52")
           calldatacopy(0x04, 0x04, 0x120)
           mstore(0x44, 0x160)
           let data := add(calldataload(0x44), 0x04)
-          let dataLength := calldataload(data)
-          calldatacopy(0x164, data, add(dataLength, 0x20))
-          let dataEnd := add(0x184, dataLength)
+          let dataEncodedLength := add(calldataload(data), 0x20)
+          calldatacopy(0x164, data, dataEncodedLength)
+          let dataEnd := add(0x164, dataEncodedLength)
           mstore(dataEnd, 0)
           let signaturesOffset := and(add(dataEnd, 0x1f), not(0x1f))
-          let signaturesLength := calldataload(signatures)
-          mstore(0x124, signaturesLength)
-          let signaturesEncodedLength := add(signaturesLength, 0x20)
+          mstore(0x124, signaturesOffset)
           let signaturesStart := add(signaturesOffset, 0x04)
+          let signaturesEncodedLength := add(calldataload(signatures), 0x20)
           calldatacopy(signaturesStart, signatures, signaturesEncodedLength)
           let signaturesEnd := add(signaturesStart, signaturesEncodedLength)
           mstore(signaturesEnd, 0)
@@ -288,7 +287,7 @@ object "Safe" {
         )
         if guard {
           // Guard.checkAfterExecution
-          mstore(0, hex"fefefefe")
+          mstore(0, hex"93271368")
           mstore(0x04, txHash)
           mstore(0x24, success)
           if iszero(
