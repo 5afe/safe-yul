@@ -308,7 +308,9 @@ object "Safe" {
       }
 
       function checkSignatures() {
-        _checkNSignatures(sload(4))
+        let threshold := sload(4)
+        if iszero(threshold) { _error("GS001") }
+        _checkNSignatures(threshold)
       }
 
       function checkNSignatures() {
@@ -680,8 +682,6 @@ object "Safe" {
       }
 
       function _innerCheckNSignatures(dataHash, data, dataLength, signatures, n) {
-        if callvalue() { revert(0x00, 0x00) }
-
         let signaturesLength := calldataload(signatures)
         let signaturesPtr := add(signatures, 0x20)
         if lt(div(signaturesLength, 0x41), n) { _error("GS020") }
@@ -823,7 +823,7 @@ object "Safe" {
         mstore(0x00, caller())
         mstore(0x20, 1)
         let slot := keccak256(0x00, 0x40)
-        if lt(caller(), 2) { _error("GS104") }
+        if or(lt(caller(), 2), iszero(sload(slot))) { _error("GS104") }
 
         success := _execute(
           calldataload(0x04),
@@ -865,7 +865,7 @@ object "Safe" {
         receiver := or(receiver, mul(iszero(receiver), origin()))
         switch token
         case 0 {
-          if iszero(call(2300, receiver, payment, 0x00, 0x00, 0x00, 0x00)) {
+          if iszero(call(gas(), receiver, payment, 0x00, 0x00, 0x00, 0x00)) {
             _error("GS011")
           }
         }
