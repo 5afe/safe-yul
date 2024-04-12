@@ -91,6 +91,16 @@ contract CheckSignaturesTest is SafeTest {
         safe.checkNSignatures(hash, data, "", 0);
     }
 
+    function test_ZeroThresholdReverts() public {
+        (ISafe safe,) = deployProxyWithDefaultSetup();
+
+        vm.store(address(safe), bytes32(uint256(4)), bytes32(0));
+
+        vm.expectRevert("GS001");
+
+        safe.checkSignatures(bytes32(0), "", "");
+    }
+
     function test_CheckEthSignSignatures() public {
         (ISafe safe, Account memory owner) = deployProxyWithDefaultSetup();
 

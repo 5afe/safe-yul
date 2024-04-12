@@ -209,4 +209,24 @@ contract ModuleTest is SafeTest {
         assertTrue(success);
         assertEq(returnData, abi.encode(modules));
     }
+
+    function test_ExecuteFromModuleAuthorization() public {
+        (ISafe safe,) = deployProxyWithDefaultSetup();
+
+        address module = address(0xd001);
+
+        vm.startPrank(module);
+
+        {
+            vm.expectRevert("GS104");
+
+            safe.execTransactionFromModule(address(0), 0, "", ISafe.Operation.CALL);
+        }
+
+        {
+            vm.expectRevert("GS104");
+
+            safe.execTransactionFromModuleReturnData(address(0), 0, "", ISafe.Operation.CALL);
+        }
+    }
 }

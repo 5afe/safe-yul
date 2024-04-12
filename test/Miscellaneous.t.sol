@@ -8,7 +8,7 @@ contract MiscellaneousTest is SafeTest {
 
     function test_Version() public {
         ISafe safe = deployProxy();
-        assertEq(safe.VERSION(), "0.0.1+Yul");
+        assertEq(safe.VERSION(), "1.4.1+Yul.0");
     }
 
     function test_ApproveHash() public {

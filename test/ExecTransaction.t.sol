@@ -106,6 +106,32 @@ contract ExecTransactionTest is SafeTest {
         assertEq(safe.nonce(), nonce + 1);
     }
 
+    function test_ExecTransactionAcceptsPayment() public {
+        (ISafe safe, Account memory owner) = deployProxyWithDefaultSetup();
+
+        uint256 value = 1 ether;
+        vm.deal(owner.addr, value);
+
+        vm.startPrank(owner.addr);
+        bytes memory signatures = abi.encodePacked(uint256(uint160(owner.addr)), uint256(0), uint8(1));
+
+        safe.execTransaction{value: value}(
+            address(0), 0, "", ISafe.Operation.CALL, 0, 0, 0, address(0), address(0), signatures
+        );
+
+        assertEq(address(safe).balance, value);
+    }
+
+    function test_UnsetThresholdReverts() public {
+        (ISafe safe,) = deployProxyWithDefaultSetup();
+
+        vm.store(address(safe), bytes32(uint256(4)), bytes32(0));
+
+        vm.expectRevert("GS001");
+
+        safe.execTransaction(address(0), 0, "", ISafe.Operation.CALL, 0, 0, 0, address(0), address(0), "");
+    }
+
     function test_InsufficientGasReverts() public {
         (ISafe safe, Account memory owner) = deployProxyWithDefaultSetup();
 

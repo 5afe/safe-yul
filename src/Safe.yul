@@ -56,7 +56,7 @@ object "Safe" {
         if callvalue() { revert(0x00, 0x00) }
 
         mstore(0x00, 0x20)
-        mstore(0x3f, "\x090.0.1+Yul")
+        mstore(0x3f, "\x0b1.4.1+Yul.0")
         return(0x00, 0x60)
       }
 
