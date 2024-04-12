@@ -174,12 +174,14 @@ object "Safe" {
         sstore(5, add(_nonce, 1))
         let txHash := keccak256(0x104, txDataLength)
         let signatures := add(calldataload(0x124), 0x04)
+        let threshold := sload(4)
+        if iszero(threshold) { _error("GS001") }
         _innerCheckNSignatures(
           txHash,
           0x00,
           txDataLength,
           signatures,
-          sload(4)
+          threshold
         )
         // GUARD_STORAGE_SLOT
         let guard := sload(
@@ -422,7 +424,7 @@ object "Safe" {
         mstore(0x20, 0x40)
         mstore(0x40, returndatasize())
         returndatacopy(0x60, 0x00, returndatasize())
-        return(0x00, add(returndatasize(), 0x60))
+        return(0x00, and(add(returndatasize(), 0x7f), not(0x1f)))
       }
 
       function isModuleEnabled() {
